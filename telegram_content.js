@@ -242,18 +242,32 @@ function handleGlobalClick(e) {
         height: 0;
         z-index: 999998;
     `;
-    let line = document.createElement('div');
-    line.style.cssText = `
+    
+    let linesWrapper = document.createElement('div');
+    linesWrapper.style.cssText = `
         position: absolute;
-        top: 0;
+        top: -6px; /* offset slightly so it centers around the click */
         left: -5000px;
         right: -5000px;
-        height: 4px;
-        background: #facc15;
-        box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+        display: flex;
+        flex-direction: column;
+        gap: 3px; /* spacing between the 3 lines */
         pointer-events: none;
     `;
-    lineContainer.appendChild(line);
+    
+    for (let i = 0; i < 3; i++) {
+        let singleLine = document.createElement('div');
+        singleLine.style.cssText = `
+            width: 100%;
+            height: 2px;
+            background: #facc15;
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
+            opacity: ${1 - (i * 0.15)}; /* slight fade on the bottom lines for a cool effect */
+        `;
+        linesWrapper.appendChild(singleLine);
+    }
+    
+    lineContainer.appendChild(linesWrapper);
     
     if (startNode.parentElement) {
         startNode.parentElement.insertBefore(lineContainer, startNode);
