@@ -37,12 +37,6 @@ async function generateComment(text, langCode) {
         throw new Error("No API key set in extension popup.");
     }
 
-    const skipRoll = Math.random();
-    // 15% chance to skip commenting naturally
-    if (skipRoll < 0.15) {
-        return "SKIP_COMMENT";
-    }
-
     const lengthRoll = Math.random();
     let lengthInstruction = "";
     if (lengthRoll < 0.3) {
@@ -53,6 +47,20 @@ async function generateComment(text, langCode) {
         lengthInstruction = "Make the comment a bit longer and more analytical, around 15 to 25 words.";
     }
 
+    const formatRoll = Math.random();
+    let formatInstruction = "";
+    if (formatRoll < 0.7) {
+        formatInstruction = "Be extremely casual with your formatting. Type like a real person on Twitter: do NOT use perfect capitalization (maybe start with a lowercase letter) and do NOT use a period at the very end of your comment.";
+    } else {
+        formatInstruction = "Use normal, casual capitalization and punctuation.";
+    }
+    
+    const questionRoll = Math.random();
+    let questionInstruction = "";
+    if (questionRoll < 0.2) {
+        questionInstruction = "Instead of making a statement, ask a highly relevant, genuine question about the project or topic discussed in the post.";
+    }
+
     const mentionInstruction = "You may explicitly mention the name of the main project, topic, or username in your comment ONLY if the context makes it absolutely natural and necessary to do so. Otherwise, keep it casual without name-dropping.";
     
     let languageInstruction = `CRITICAL RULE: The original post was written in this language: "${langCode}". You MUST write your reply entirely in that exact language (e.g., if it says Japanese or 'ja', you must reply in Japanese).`;
@@ -60,10 +68,17 @@ async function generateComment(text, langCode) {
         languageInstruction = `CRITICAL RULE: You must write the comment in the EXACT SAME LANGUAGE as the original post.`;
     }
     
-    const prompt = `Act as an experienced person in this specific space. Read the following post. Identify the main character, main topic, or main project of the post, and write a human-like comment focusing specifically on that subject.
-${lengthInstruction}
-${mentionInstruction}
-${languageInstruction} 
+    const prompt = `Act as an experienced person in this specific space. Read the following post. Identify the main character, main topic, or main project of the post.
+    
+Write a human-like comment focusing specifically on that subject.
+CRITICAL BEHAVIORS:
+1. Mirror the emotional tone of the post (if they are hyped, be hyped. If they are serious, be serious).
+2. ${lengthInstruction}
+3. ${formatInstruction}
+4. ${questionInstruction}
+5. ${mentionInstruction}
+6. ${languageInstruction}
+
 Keep it very natural, as if a real person is casually replying. Do not use hashtags.
 Post: "${text}"`;
     
