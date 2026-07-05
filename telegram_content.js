@@ -441,6 +441,12 @@ function processNextLink() {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'next_link') {
+        // Add a reaction to the link we just processed
+        const processedUrl = linksToProcess[currentIndex];
+        if (processedUrl) {
+            reactToMessage(processedUrl);
+        }
+        
         currentIndex++;
         chrome.storage.local.get(['timeLimit'], (res) => {
             const delayInSeconds = (res.timeLimit !== undefined) ? parseInt(res.timeLimit, 10) : 0;
@@ -459,6 +465,55 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
     }
 });
+
+function reactToMessage(url) {
+    try {
+        const aTags = Array.from(document.querySelectorAll('a'));
+        let targetA = null;
+        for (let a of aTags) {
+            let href = a.href || '';
+            let text = a.textContent || '';
+            if (href === url || href.includes(url) || text.includes(url)) {
+                targetA = a;
+                break;
+            }
+        }
+        
+        if (targetA) {
+            // Try to find the message container
+            let container = targetA.closest('.message, .Message, .bubble, .message-list-item');
+            if (!container) {
+                container = targetA.parentElement; 
+            }
+            
+            if (container) {
+                // Simulate double click to trigger Telegram's default quick reaction
+                const dblClickEvent = new MouseEvent('dblclick', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                container.dispatchEvent(dblClickEvent);
+                console.log("[Telegram-Bot] Sent double-click reaction to:", url);
+                
+                // Add a visual indicator to the link locally as well
+                targetA.style.border = "2px solid #10b981";
+                targetA.style.borderRadius = "4px";
+                targetA.style.padding = "2px";
+                targetA.style.backgroundColor = "rgba(16, 185, 129, 0.2)";
+                
+                if (!targetA.querySelector('.bot-check-mark')) {
+                    const check = document.createElement('span');
+                    check.className = 'bot-check-mark';
+                    check.innerText = ' ✅';
+                    targetA.appendChild(check);
+                }
+            }
+        }
+    } catch(e) {
+        console.error("[Telegram-Bot] Error reacting to message:", e);
+    }
+}
 
 chrome.storage.local.get(['enabled'], (res) => {
     if (res.enabled) {
