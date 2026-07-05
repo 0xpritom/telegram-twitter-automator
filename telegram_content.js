@@ -246,12 +246,12 @@ function handleGlobalClick(e) {
     let linesWrapper = document.createElement('div');
     linesWrapper.style.cssText = `
         position: absolute;
-        top: -6px; /* offset slightly so it centers around the click */
+        top: -75px; /* offset to center the 3 wide lines over the message */
         left: -5000px;
         right: -5000px;
         display: flex;
         flex-direction: column;
-        gap: 3px; /* spacing between the 3 lines */
+        gap: 75px; /* distance equal to roughly one full message height */
         pointer-events: none;
     `;
     
