@@ -39,12 +39,10 @@ async function generateComment(text, langCode) {
 
     const lengthRoll = Math.random();
     let lengthInstruction = "";
-    if (lengthRoll < 0.3) {
+    if (lengthRoll < 0.4) {
         lengthInstruction = "Make the comment VERY short, just 1 to 4 words. Be extremely brief and punchy.";
-    } else if (lengthRoll < 0.7) {
-        lengthInstruction = "Make the comment medium length, about 5 to 12 words.";
     } else {
-        lengthInstruction = "Make the comment a bit longer and more analytical, around 15 to 25 words.";
+        lengthInstruction = "Make the comment short to medium length, about 5 to 12 words. Do NOT make the comment long or big.";
     }
 
     const formatRoll = Math.random();
@@ -80,6 +78,9 @@ CRITICAL BEHAVIORS:
 6. ${languageInstruction}
 
 Keep it very natural, as if a real person is casually replying. Do not use hashtags.
+
+IMPORTANT: Output ONLY the raw comment text. DO NOT wrap your comment in quotes. DO NOT use prefixes like "Comment:" or "Reply:". Just output the raw text directly.
+
 Post: "${text}"`;
     
     const url = "https://api.groq.com/openai/v1/chat/completions";
@@ -106,9 +107,11 @@ Post: "${text}"`;
         
         let comment = result.choices[0].message.content.trim();
         
-        if (comment.startsWith('"') && comment.endsWith('"')) {
-            comment = comment.substring(1, comment.length - 1);
-        }
+        // Strip common prefixes AI sometimes adds
+        comment = comment.replace(/^(Comment|Reply|Response):\s*/i, '');
+        // Aggressively strip any surrounding quotes (single or double)
+        comment = comment.replace(/^["']+|["']+$/g, '');
+        comment = comment.trim();
 
         return comment;
 
