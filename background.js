@@ -53,13 +53,7 @@ async function generateComment(text, langCode) {
         lengthInstruction = "Make the comment a bit longer and more analytical, around 15 to 25 words.";
     }
 
-    const mentionRoll = Math.random();
-    let mentionInstruction = "";
-    if (mentionRoll < 0.3) {
-        mentionInstruction = "If possible and natural, explicitly mention the name of the main project, topic, or username in your comment.";
-    } else {
-        mentionInstruction = "Do not explicitly name the project or user unless absolutely necessary. Keep it conversational.";
-    }
+    const mentionInstruction = "You may explicitly mention the name of the main project, topic, or username in your comment ONLY if the context makes it absolutely natural and necessary to do so. Otherwise, keep it casual without name-dropping.";
     
     let languageInstruction = `CRITICAL RULE: The original post was written in this language: "${langCode}". You MUST write your reply entirely in that exact language (e.g., if it says Japanese or 'ja', you must reply in Japanese).`;
     if (!langCode || langCode === 'unknown') {
