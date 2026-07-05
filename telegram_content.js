@@ -4,7 +4,7 @@ let linksToProcess = [];
 let ignoredLinks = new Set();
 let scanInterval = null;
 let currentIndex = 0;
-let scanLineY = 0;
+let startNode = null;
 
 function createStatusUI() {
     if (document.getElementById('telegram-bot-status')) return;
@@ -223,83 +223,52 @@ function handleGlobalClick(e) {
     e.stopPropagation();
     
     document.body.style.cursor = 'default';
-    const clickY = e.clientY;
     
-    // Find all links currently on screen
-    const allLinks = getAllXLinks();
-    if (allLinks.length === 0) {
-        updateStatus("No links found on screen to start from.");
-        selectionState = 'IDLE';
-        const scanBtn = document.getElementById('telegram-bot-scan-btn');
-        scanBtn.innerText = 'Select Start & Scan';
-        enableButton('telegram-bot-scan-btn', 'orange');
-        return;
+    startNode = e.target.closest('.message, .Message, .bubble, .message-list-item');
+    if (!startNode) startNode = e.target;
+    
+    linksToProcess = [];
+    ignoredLinks = new Set();
+    
+    // Draw the scanner line relative to the clicked element so it scrolls with the chat
+    let lineEl = document.getElementById('telegram-bot-scan-line');
+    if (lineEl) lineEl.remove();
+    
+    let lineContainer = document.createElement('div');
+    lineContainer.id = 'telegram-bot-scan-line';
+    lineContainer.style.cssText = `
+        position: relative;
+        width: 100%;
+        height: 0;
+        z-index: 999998;
+    `;
+    let line = document.createElement('div');
+    line.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: -5000px;
+        right: -5000px;
+        height: 4px;
+        background: #facc15;
+        box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+        pointer-events: none;
+    `;
+    lineContainer.appendChild(line);
+    
+    if (startNode.parentElement) {
+        startNode.parentElement.insertBefore(lineContainer, startNode);
+    } else {
+        startNode.appendChild(lineContainer);
     }
     
-    // Find closest link to click
-    let closestLink = null;
-    let minDistance = Infinity;
+    selectionState = 'SCANNING';
+    const scanBtn = document.getElementById('telegram-bot-scan-btn');
+    scanBtn.innerText = 'Stop Scanning';
+    enableButton('telegram-bot-scan-btn', 'red');
     
-    allLinks.forEach(link => {
-        const distance = Math.abs(link.y - clickY);
-        if (distance < minDistance) {
-            minDistance = distance;
-            closestLink = link;
-        }
-    });
+    updateStatus(`Scanning active! Started at the yellow line. Scroll down to capture all links below it.`);
     
-    if (closestLink) {
-        // Initialize scan from this point
-        linksToProcess = [];
-        ignoredLinks = new Set();
-        scanLineY = closestLink.y + 20; // Set scanner line slightly below the link
-        
-        allLinks.forEach(link => {
-            if (link.y < closestLink.y - 10) {
-                // Link is above the chosen start point, ignore it forever
-                ignoredLinks.add(link.url);
-            } else if (Math.abs(link.y - closestLink.y) <= 10) {
-                // The start link itself (and any exactly on the same line)
-                if (!linksToProcess.includes(link.url)) {
-                    linksToProcess.push(link.url);
-                }
-            }
-            // Links that are below the start line are NEITHER ignored nor added yet.
-            // They will be scanned dynamically as they scroll up past the scanLineY.
-        });
-        
-        // Draw the scanner line
-        let lineEl = document.getElementById('telegram-bot-scan-line');
-        if (!lineEl) {
-            lineEl = document.createElement('div');
-            lineEl.id = 'telegram-bot-scan-line';
-            document.body.appendChild(lineEl);
-        }
-        lineEl.style.cssText = `
-            position: fixed;
-            top: ${scanLineY - 15}px;
-            left: 0;
-            width: 100%;
-            height: 30px;
-            border-top: 2px solid #facc15;
-            border-bottom: 2px solid #facc15;
-            background: rgba(250, 204, 21, 0.15);
-            box-shadow: 0 0 15px rgba(250, 204, 21, 0.3), inset 0 0 10px rgba(250, 204, 21, 0.2);
-            z-index: 999998;
-            pointer-events: none;
-            transition: opacity 0.3s;
-            opacity: 1;
-        `;
-        
-        selectionState = 'SCANNING';
-        const scanBtn = document.getElementById('telegram-bot-scan-btn');
-        scanBtn.innerText = 'Stop Scanning';
-        enableButton('telegram-bot-scan-btn', 'red');
-        
-        updateStatus(`Scanning active! Started at link. Scroll down to pass links through the yellow scanner lines!`);
-        
-        scanInterval = setInterval(scanForLinks, 200);
-    }
+    scanInterval = setInterval(scanForLinks, 200);
 }
 
 function clearLinks() {
@@ -320,14 +289,21 @@ function clearLinks() {
 }
 
 function scanForLinks() {
+    if (!startNode) return;
+    
     const currentLinks = getAllXLinks();
     let newLinksCount = 0;
     
-    currentLinks.forEach(link => {
-        if (!ignoredLinks.has(link.url) && !linksToProcess.includes(link.url)) {
-            // Only scan if the link has physically passed above or touched the scanner line
-            if (link.y <= scanLineY) {
-                linksToProcess.push(link.url);
+    currentLinks.forEach(linkItem => {
+        if (!ignoredLinks.has(linkItem.url) && !linksToProcess.includes(linkItem.url)) {
+            // Check if link node is after or inside the startNode in the DOM
+            const position = startNode.compareDocumentPosition(linkItem.node);
+            const isAfterOrInside = (position & Node.DOCUMENT_POSITION_FOLLOWING) || 
+                                    (position & Node.DOCUMENT_POSITION_CONTAINED_BY) || 
+                                    startNode === linkItem.node;
+            
+            if (isAfterOrInside) {
+                linksToProcess.push(linkItem.url);
                 newLinksCount++;
             }
         }
@@ -339,7 +315,7 @@ function scanForLinks() {
 }
 
 function getAllXLinks() {
-    const linksMap = new Map();
+    const result = [];
     const urlRegex = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)(?:\/[^\s<>"']*)?/gi;
     
     // 1. Get from 'a' tags
@@ -360,10 +336,7 @@ function getAllXLinks() {
             }
             
             if (finalUrl) {
-                const rect = a.getBoundingClientRect();
-                if (rect.height > 0) {
-                    linksMap.set(finalUrl, rect.top + (rect.height / 2));
-                }
+                result.push({ url: finalUrl, node: a });
             }
         }
     });
@@ -383,20 +356,22 @@ function getAllXLinks() {
                 let url = match[0].replace(/[.,;!?)]+$/, '');
                 if (!url.startsWith('http')) url = 'https://' + url;
                 
-                const rect = node.parentElement.getBoundingClientRect();
-                if (rect.height > 0) {
-                    linksMap.set(url, rect.top + (rect.height / 2));
-                }
+                result.push({ url: url, node: node.parentElement });
             }
         }
     }
     
-    const result = [];
-    linksMap.forEach((y, url) => {
-        result.push({ url, y });
+    // Remove duplicates
+    const unique = [];
+    const seen = new Set();
+    result.forEach(item => {
+        if (!seen.has(item.url)) {
+            seen.add(item.url);
+            unique.push(item);
+        }
     });
     
-    return result;
+    return unique;
 }
 
 async function startProcessing() {
