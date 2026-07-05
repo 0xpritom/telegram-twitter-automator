@@ -246,12 +246,12 @@ function handleGlobalClick(e) {
     let linesWrapper = document.createElement('div');
     linesWrapper.style.cssText = `
         position: absolute;
-        top: -75px; /* offset to center the 3 wide lines over the message */
+        top: 0; /* Align with the top of the message */
         left: -5000px;
         right: -5000px;
         display: flex;
         flex-direction: column;
-        gap: 75px; /* distance equal to roughly one full message height */
+        gap: 35px; /* Spacing so the 3 yellow lines align perfectly with the 3 text lines in the message */
         pointer-events: none;
     `;
     
