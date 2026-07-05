@@ -154,8 +154,14 @@ async function startBot(actionMode, timeLimit) {
             return finishProcess(false);
         }
 
+        if (replyText === "SKIP_COMMENT") {
+            updateStatus("Decided to skip commenting to mimic natural behavior.", tweet);
+            await randomDelay(1500, 2000);
+            return finishProcess(true);
+        }
+
         if (!replyText || replyText.trim() === "") {
-            updateStatus("Grok generated an empty reply.", tweet);
+            updateStatus("AI generated an empty reply.", tweet);
             await randomDelay(2000, 2000);
             return finishProcess(false);
         }
