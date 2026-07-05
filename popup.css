@@ -1,0 +1,253 @@
+body {
+    font-family: 'Inter', sans-serif;
+    width: 320px;
+    margin: 0;
+    padding: 0;
+    background-color: #f8fafc;
+    color: #111827;
+}
+
+.app-container {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logo-container {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.logo-glow {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, rgba(253,224,71,0.8) 0%, rgba(253,224,71,0) 70%);
+    border-radius: 50%;
+    z-index: 1;
+    filter: blur(10px);
+}
+
+.logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.app-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.app-subtitle {
+    margin: 4px 0 24px 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.status-card {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.settings-card {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.status-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #f87171;
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+    transition: all 0.3s ease;
+}
+
+.status-indicator.active {
+    background-color: #34d399;
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.6);
+}
+
+.form-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.radio-label:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+}
+
+.radio-label input {
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #10b981;
+    width: 16px;
+    height: 16px;
+}
+
+.radio-text {
+    font-size: 0.9rem;
+    color: #111827;
+    font-weight: 600;
+}
+
+input[type="password"], input[type="number"] {
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #111827;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    width: 100%;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+input[type="password"]:focus, input[type="number"]:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-primary {
+    width: 100%;
+    background-color: #111827;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+#message {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #10b981;
+    font-weight: 600;
+    text-align: center;
+    min-height: 20px;
+}
+
+/* Toggle Switch CSS */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 26px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: #10b981;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}

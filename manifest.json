@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Telegram to X Automator",
+  "version": "1.0",
+  "description": "Automatically opens X links from Telegram and comments on them.",
+  "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": [
+    "*://*.twitter.com/*",
+    "*://*.x.com/*",
+    "*://*.telegram.org/*",
+    "https://api.groq.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.twitter.com/*", "*://*.x.com/*"],
+      "js": ["twitter_content.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["*://*.telegram.org/*"],
+      "js": ["telegram_content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

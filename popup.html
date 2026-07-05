@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram to X Automator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <div class="logo-container">
+            <div class="logo-glow"></div>
+            <img src="icon.png" alt="Logo" class="logo-img">
+        </div>
+        
+        <h1 class="app-title">Telegram to X Automator</h1>
+        <p class="app-subtitle">Smart AI Auto-Commenter</p>
+        
+        <div class="status-card">
+            <div class="status-info">
+                <div class="status-indicator" id="status-dot"></div>
+                <span id="status-text" style="font-weight: 700; font-size: 0.9rem;">Inactive</span>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="toggle-bot">
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <div class="settings-card">
+            <div class="form-group">
+                <label>Action Mode</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="action-mode" value="like" id="mode-like">
+                        <span class="radio-text">Like Only</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="action-mode" value="comment" id="mode-comment" checked>
+                        <span class="radio-text">Comment Only</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="action-mode" value="both" id="mode-both">
+                        <span class="radio-text">Like & Comment</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="time-limit">Wait Time (Seconds)</label>
+                <input type="number" id="time-limit" min="1" max="60" value="3" placeholder="e.g. 5">
+            </div>
+
+            <div class="form-group">
+                <label for="api-key">Groq API Key</label>
+                <input type="password" id="api-key" placeholder="gsk_...">
+            </div>
+        </div>
+
+        <button id="save-btn" class="btn-primary">Save Settings</button>
+        <div id="message"></div>
+        
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
