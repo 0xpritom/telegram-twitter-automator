@@ -38,12 +38,7 @@ async function generateComment(text, langCode) {
     }
 
     const lengthRoll = Math.random();
-    let lengthInstruction = "";
-    if (lengthRoll < 0.4) {
-        lengthInstruction = "Make the comment VERY short, just 1 to 4 words. Be extremely brief and punchy.";
-    } else {
-        lengthInstruction = "Make the comment short to medium length, about 5 to 12 words. Do NOT make the comment long or big.";
-    }
+    let lengthInstruction = "Write between 1 to 3 sentences. Decide the exact length randomly and based on how much context the post requires to form a natural reply.";
 
     const formatRoll = Math.random();
     let formatInstruction = "";

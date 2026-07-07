@@ -197,18 +197,17 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
             
             const textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
             if (textBox) {
-                updateStatus(`Typing reply word-by-word...`, tweet);
+                updateStatus(`Typing reply letter-by-letter...`, tweet);
                 textBox.focus();
                 await randomDelay(500, 1000);
                 
-                // Type word by word using DataTransfer paste to bypass Draft.js insertText bugs
-                // split(/(?<=\s)/) splits after a space, so the space stays attached to the word.
-                const words = replyText.split(/(?<=\s)/); 
-                for (let i = 0; i < words.length; i++) {
-                    const word = words[i];
+                // Type letter by letter using DataTransfer paste to bypass Draft.js insertText bugs
+                const chars = replyText.split(''); 
+                for (let i = 0; i < chars.length; i++) {
+                    const char = chars[i];
                     
                     const dataTransfer = new DataTransfer();
-                    dataTransfer.setData('text/plain', word);
+                    dataTransfer.setData('text/plain', char);
                     
                     textBox.dispatchEvent(new ClipboardEvent('paste', {
                         clipboardData: dataTransfer,
@@ -216,7 +215,7 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
                         cancelable: true
                     }));
                     
-                    await randomDelay(150, 400); // realistic typing delay between words
+                    await randomDelay(30, 90); // realistic fast typing delay between letters
                 }
                 
                 await randomDelay(1000, 1500);
