@@ -83,7 +83,7 @@ async function finishProcess(success) {
     chrome.runtime.sendMessage({ action: success ? 'twitter_done' : 'twitter_error' });
 }
 
-async function startBot(actionMode, timeLimit) {
+async function startBot(actionMode, timeLimit, readMin, readMax) {
     createStatusUI();
     updateStatus("Starting up on X...");
     
@@ -134,9 +134,28 @@ async function startBot(actionMode, timeLimit) {
             tweetLang = translationMatch[1];
         }
         
-        updateStatus(`Reading tweet...\n"${tweetText.substring(0, 40)}..."`, tweet);
+        updateStatus(`Simulating human reading... scrolling down`);
+        
+        const readTimeSec = Math.floor(Math.random() * (readMax - readMin + 1)) + readMin;
+        const readTimeMs = readTimeSec * 1000;
+        updateStatus(`Reading tweet and comments for ${readTimeSec}s...`);
+        
+        const startTime = Date.now();
+        // Keep scrolling and pausing as long as we have reading time left
+        while (Date.now() - startTime < readTimeMs) {
+            window.scrollBy({ top: Math.floor(Math.random() * 300) + 200, behavior: 'smooth' });
+            
+            const timeLeft = readTimeMs - (Date.now() - startTime);
+            if (timeLeft <= 0) break;
+            
+            const pauseTime = Math.min(Math.floor(Math.random() * 1000) + 1000, timeLeft);
+            await sleep(pauseTime);
+        }
+        
+        updateStatus(`Scrolling back to tweet...`);
+        tweet.scrollIntoView({ behavior: 'smooth', block: 'center' });
         await randomDelay(1000, 2000);
-
+        
         updateStatus(`Thinking of a reply using Grok AI...`, tweet);
         
         let replyText = null;
@@ -178,20 +197,26 @@ async function startBot(actionMode, timeLimit) {
             
             const textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
             if (textBox) {
-                updateStatus(`Typing reply...`, tweet);
+                updateStatus(`Typing reply word-by-word...`, tweet);
                 textBox.focus();
+                await randomDelay(500, 1000);
                 
-                document.execCommand('insertText', false, replyText);
-                
-                if (textBox.innerText.trim() === "") {
-                    updateStatus(`Fallback typing...`, tweet);
+                // Type word by word using DataTransfer paste to bypass Draft.js insertText bugs
+                // split(/(?<=\s)/) splits after a space, so the space stays attached to the word.
+                const words = replyText.split(/(?<=\s)/); 
+                for (let i = 0; i < words.length; i++) {
+                    const word = words[i];
+                    
                     const dataTransfer = new DataTransfer();
-                    dataTransfer.setData('text/plain', replyText);
+                    dataTransfer.setData('text/plain', word);
+                    
                     textBox.dispatchEvent(new ClipboardEvent('paste', {
                         clipboardData: dataTransfer,
                         bubbles: true,
                         cancelable: true
                     }));
+                    
+                    await randomDelay(150, 400); // realistic typing delay between words
                 }
                 
                 await randomDelay(1000, 1500);
@@ -230,13 +255,15 @@ async function startBot(actionMode, timeLimit) {
 
 // Start processing as soon as page loads
 window.addEventListener('load', () => {
-    chrome.storage.local.get(['enabled', 'actionMode', 'timeLimit'], (res) => {
+    chrome.storage.local.get(['enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (res) => {
         if (res.enabled) {
             const actionMode = res.actionMode || 'comment';
             const timeLimit = (res.timeLimit !== undefined) ? parseInt(res.timeLimit, 10) : 0;
+            const readMin = (res.readMin !== undefined) ? parseInt(res.readMin, 10) : 3;
+            const readMax = (res.readMax !== undefined) ? parseInt(res.readMax, 10) : 7;
             // Small delay to ensure X finishes rendering initial shell
             setTimeout(() => {
-                startBot(actionMode, timeLimit);
+                startBot(actionMode, timeLimit, readMin, readMax);
             }, 2000);
         }
     });
