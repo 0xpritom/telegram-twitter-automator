@@ -38,7 +38,7 @@ async function generateComment(text, langCode) {
     }
 
     const lengthRoll = Math.random();
-    let lengthInstruction = "Write between 1 to 3 sentences. Decide the exact length randomly and based on how much context the post requires to form a natural reply.";
+    let lengthInstruction = "Write exactly between 7 to 14 words. Your comment must strictly be between 7 and 14 words long.";
 
     const formatRoll = Math.random();
     let formatInstruction = "";

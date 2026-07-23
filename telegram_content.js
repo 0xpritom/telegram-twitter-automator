@@ -1,15 +1,15 @@
 let isRunning = false;
-let selectionState = 'IDLE'; // IDLE, SELECTING_START, SCANNING
+let selectionState = 'IDLE'; // IDLE, SELECTING_START, SELECTING_END
 let linksToProcess = [];
-let ignoredLinks = new Set();
+let collectedUrls = new Set();
+let ignoredUrls = new Set();
 let scanInterval = null;
 let currentIndex = 0;
-let startNode = null;
+let hoveredNode = null;
 
 function createStatusUI() {
     if (document.getElementById('telegram-bot-status')) return;
     
-    // ... UI setup ...
     const statusBox = document.createElement('div');
     statusBox.id = 'telegram-bot-status';
     statusBox.style.cssText = `
@@ -60,10 +60,9 @@ function createStatusUI() {
     titleContainer.appendChild(logo);
     titleContainer.appendChild(title);
     
-    // 1. START & SCAN BUTTON
     const scanBtn = document.createElement('button');
     scanBtn.id = 'telegram-bot-scan-btn';
-    scanBtn.innerText = 'Select Start & Scan';
+    scanBtn.innerText = 'Select Start & End';
     scanBtn.style.cssText = `
         background: linear-gradient(135deg, #f59e0b, #ea580c);
         color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%;
@@ -71,7 +70,6 @@ function createStatusUI() {
         box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
     `;
     
-    // 2. RUN BUTTON
     const runBtn = document.createElement('button');
     runBtn.id = 'telegram-bot-run-btn';
     runBtn.innerText = 'Process 0 Links';
@@ -82,7 +80,6 @@ function createStatusUI() {
         font-weight: 600; font-size: 0.85rem; margin-bottom: 8px; transition: all 0.2s ease;
     `;
     
-    // 3. CLEAR BUTTON
     const clearBtn = document.createElement('button');
     clearBtn.id = 'telegram-bot-clear-btn';
     clearBtn.innerText = 'Clear Links';
@@ -104,7 +101,7 @@ function createStatusUI() {
     
     const text = document.createElement('div');
     text.id = 'telegram-bot-text';
-    text.innerHTML = '<span style="color: #64748b; font-weight: 600; font-size: 0.75rem; text-transform: uppercase;">Status</span><br/><div style="margin-top: 4px; color: #475569;">Ready. Click "Select Start & Scan".</div>';
+    text.innerHTML = '<span style="color: #64748b; font-weight: 600; font-size: 0.75rem; text-transform: uppercase;">Status</span><br/><div style="margin-top: 4px; color: #475569;">Ready. Click "Select Start & End".</div>';
     text.style.cssText = `
         font-size: 0.8rem;
         line-height: 1.5;
@@ -126,6 +123,7 @@ function createStatusUI() {
     document.body.appendChild(statusBox);
     
     document.addEventListener('click', handleGlobalClick, true);
+    document.addEventListener('mousemove', handleHover, true);
 }
 
 function updateStatus(message) {
@@ -133,7 +131,6 @@ function updateStatus(message) {
     if (textEl) {
         textEl.innerHTML = `<span style="color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Status</span><br/><div style="margin-top: 4px; color: #475569;">${message.replace(/\n/g, '<br/>')}</div>`;
     }
-    console.log("[Telegram-Bot]", message);
 }
 
 function enableButton(id, colorType) {
@@ -170,9 +167,91 @@ function disableButton(id) {
     btn.style.boxShadow = 'none';
 }
 
+function normalizeTwitterUrl(url) {
+    try {
+        if (!url.startsWith('http')) url = 'https://' + url;
+        let urlObj = new URL(url);
+        
+        let host = urlObj.hostname.toLowerCase();
+        if (host === 'x.com' || host === 'www.x.com' || host === 'www.twitter.com') {
+            host = 'twitter.com';
+        }
+        
+        // IMPORTANT: For /intent/ links (like/retweet/reply), the query parameter (?tweet_id=...) 
+        // is the ONLY thing that makes the URL unique. We MUST NOT strip it.
+        // For normal status links, we can strip the tracking parameters.
+        if (!urlObj.pathname.includes('/intent/')) {
+            urlObj.search = '';
+        }
+        
+        return 'https://' + host + urlObj.pathname + urlObj.search;
+    } catch (e) {
+        return url;
+    }
+}
+
+function handleHover(e) {
+    if (selectionState === 'IDLE') {
+        if (hoveredNode) {
+            removeHoverOutline(hoveredNode);
+            hoveredNode = null;
+        }
+        return;
+    }
+    
+    let target = e.target;
+    if (target.id === 'telegram-bot-status' || target.closest('#telegram-bot-status')) return;
+    
+    let msgNode = target.closest('.message, .Message, .message-list-item, .im_message_wrap, .bubble, [data-message-id], [data-msg-id]');
+    if (!msgNode) msgNode = target;
+    
+    if (msgNode && msgNode !== hoveredNode) {
+        if (hoveredNode) {
+            removeHoverOutline(hoveredNode);
+        }
+        
+        let color = selectionState === 'SELECTING_START' ? '#10b981' : '#ef4444';
+        
+        if (!msgNode.classList.contains('telegram-bot-boundary-start') && !msgNode.classList.contains('telegram-bot-boundary-end')) {
+            msgNode.style.outline = `2px dashed ${color}`;
+            msgNode.style.outlineOffset = '-2px';
+        }
+        
+        hoveredNode = msgNode;
+    }
+}
+
+function removeHoverOutline(node) {
+    if (!node) return;
+    if (node.classList.contains('telegram-bot-boundary-start')) {
+        node.style.outline = '3px solid #10b981';
+        node.style.outlineOffset = '-3px';
+    } else if (node.classList.contains('telegram-bot-boundary-end')) {
+        node.style.outline = '3px solid #ef4444';
+        node.style.outlineOffset = '-3px';
+    } else {
+        node.style.outline = '';
+    }
+}
+
+function highlightTarget(node, type) {
+    if (!node) return;
+    let color = type === 'start' ? '#10b981' : '#ef4444';
+    node.style.outline = `3px solid ${color}`;
+    node.style.outlineOffset = '-3px';
+    node.classList.add(`telegram-bot-boundary-${type}`);
+}
+
 function removeScannerLine() {
-    const lineEl = document.getElementById('telegram-bot-scan-line');
-    if (lineEl) lineEl.remove();
+    document.querySelectorAll('.telegram-bot-boundary-start, .telegram-bot-boundary-end').forEach(el => {
+        el.style.outline = '';
+        el.classList.remove('telegram-bot-boundary-start');
+        el.classList.remove('telegram-bot-boundary-end');
+    });
+    if (hoveredNode) {
+        removeHoverOutline(hoveredNode);
+        hoveredNode = null;
+    }
 }
 
 function toggleScanning() {
@@ -186,155 +265,168 @@ function toggleScanning() {
         
         disableButton('telegram-bot-run-btn');
         disableButton('telegram-bot-clear-btn');
-        updateStatus("Click next to the message you want to start from.");
+        updateStatus("Click near the START message.");
         document.body.style.cursor = 'crosshair';
         
-    } else if (selectionState === 'SELECTING_START') {
+    } else if (selectionState === 'SELECTING_START' || selectionState === 'SELECTING_END') {
         selectionState = 'IDLE';
-        scanBtn.innerText = 'Select Start & Scan';
+        if (scanInterval) clearInterval(scanInterval);
+        removeScannerLine();
+        
+        scanBtn.innerText = 'Select Start & End';
         enableButton('telegram-bot-scan-btn', 'orange');
         updateStatus("Selection cancelled.");
         document.body.style.cursor = 'default';
         
-    } else if (selectionState === 'SCANNING') {
-        selectionState = 'IDLE';
-        clearInterval(scanInterval);
-        removeScannerLine();
-        
-        scanBtn.innerText = 'Continue Scanning (No Start)';
-        enableButton('telegram-bot-scan-btn', 'green');
-        
-        updateStatus(`Scanning paused. Collected ${linksToProcess.length} total links.`);
-        
         if (linksToProcess.length > 0) {
             enableButton('telegram-bot-run-btn', 'blue');
-            const runBtn = document.getElementById('telegram-bot-run-btn');
-            runBtn.innerText = `Process ${linksToProcess.length} Links`;
             enableButton('telegram-bot-clear-btn', 'orange');
         }
     }
 }
 
 function handleGlobalClick(e) {
-    if (selectionState !== 'SELECTING_START') return;
+    if (selectionState === 'IDLE') return;
     if (e.target.closest('#telegram-bot-status')) return;
     
     e.preventDefault();
     e.stopPropagation();
     
-    document.body.style.cursor = 'default';
+    let clickY = e.clientY;
+    let target = e.target;
     
-    startNode = e.target.closest('.message, .Message, .bubble, .message-list-item');
-    if (!startNode) startNode = e.target;
+    let msgNode = target.closest('.message, .Message, .message-list-item, .im_message_wrap, .bubble, [data-message-id], [data-msg-id]');
+    if (!msgNode) msgNode = target;
     
-    linksToProcess = [];
-    ignoredLinks = new Set();
-    
-    // Draw the scanner line relative to the clicked element so it scrolls with the chat
-    let lineEl = document.getElementById('telegram-bot-scan-line');
-    if (lineEl) lineEl.remove();
-    
-    let lineContainer = document.createElement('div');
-    lineContainer.id = 'telegram-bot-scan-line';
-    lineContainer.style.cssText = `
-        position: relative;
-        width: 100%;
-        height: 0;
-        z-index: 999998;
-    `;
-    
-    let linesWrapper = document.createElement('div');
-    linesWrapper.style.cssText = `
-        position: absolute;
-        top: 0; /* Align with the top of the message */
-        left: -5000px;
-        right: -5000px;
-        display: flex;
-        flex-direction: column;
-        gap: 35px; /* Spacing so the 3 yellow lines align perfectly with the 3 text lines in the message */
-        pointer-events: none;
-    `;
-    
-    for (let i = 0; i < 3; i++) {
-        let singleLine = document.createElement('div');
-        singleLine.style.cssText = `
-            width: 100%;
-            height: 2px;
-            background: #facc15;
-            box-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
-            opacity: ${1 - (i * 0.15)}; /* slight fade on the bottom lines for a cool effect */
-        `;
-        linesWrapper.appendChild(singleLine);
+    if (selectionState === 'SELECTING_START') {
+        collectedUrls.clear();
+        ignoredUrls.clear();
+        removeScannerLine();
+        
+        highlightTarget(msgNode, 'start');
+        
+        // Pure Geometry approach: Ignore all links that are physically ABOVE the top of the start message
+        let msgRect = msgNode.getBoundingClientRect();
+        let topBoundary = msgRect.top;
+        
+        let currentLinks = getAllXLinksRaw();
+        currentLinks.forEach(item => {
+            let rect = item.node.getBoundingClientRect();
+            // If the link is entirely above the start message's top boundary
+            if (rect.bottom <= topBoundary) {
+                ignoredUrls.add(normalizeTwitterUrl(item.url));
+            }
+        });
+        
+        selectionState = 'SELECTING_END';
+        updateStatus(`Start selected!\nScroll down and click ON the END message.`);
+        
+        scanInterval = setInterval(scanForLinks, 200);
+        
+    } else if (selectionState === 'SELECTING_END') {
+        clearInterval(scanInterval);
+        
+        highlightTarget(msgNode, 'end');
+        
+        // Pure Geometry approach: Ignore all links that are physically BELOW the bottom of the end message
+        let msgRect = msgNode.getBoundingClientRect();
+        let bottomBoundary = msgRect.bottom;
+        
+        let currentLinks = getAllXLinksRaw();
+        currentLinks.forEach(item => {
+            let rect = item.node.getBoundingClientRect();
+            let normalized = normalizeTwitterUrl(item.url);
+            
+            // If the link is entirely below the end message's bottom boundary
+            if (rect.top >= bottomBoundary) {
+                ignoredUrls.add(normalized);
+                collectedUrls.delete(normalized);
+            }
+        });
+        
+        // Final pass
+        currentLinks.forEach(item => {
+            let normalized = normalizeTwitterUrl(item.url);
+            if (!ignoredUrls.has(normalized)) {
+                collectedUrls.add(normalized);
+            }
+        });
+        
+        document.body.style.cursor = 'default';
+        selectionState = 'IDLE';
+        if (hoveredNode) {
+            removeHoverOutline(hoveredNode);
+            hoveredNode = null;
+        }
+        
+        const scanBtn = document.getElementById('telegram-bot-scan-btn');
+        scanBtn.innerText = 'Start New Selection';
+        enableButton('telegram-bot-scan-btn', 'orange');
+        
+        linksToProcess = Array.from(collectedUrls);
+        
+        if (linksToProcess.length > 0) {
+            enableButton('telegram-bot-run-btn', 'blue');
+            const runBtn = document.getElementById('telegram-bot-run-btn');
+            runBtn.innerText = `Process ${linksToProcess.length} Links`;
+            enableButton('telegram-bot-clear-btn', 'orange');
+            updateStatus(`Success! Found ${linksToProcess.length} valid links.`);
+        } else {
+            updateStatus(`No links found in the selected range.`);
+            enableButton('telegram-bot-clear-btn', 'orange');
+        }
     }
-    
-    lineContainer.appendChild(linesWrapper);
-    
-    if (startNode.parentElement) {
-        startNode.parentElement.insertBefore(lineContainer, startNode);
-    } else {
-        startNode.appendChild(lineContainer);
-    }
-    
-    selectionState = 'SCANNING';
-    const scanBtn = document.getElementById('telegram-bot-scan-btn');
-    scanBtn.innerText = 'Stop Scanning';
-    enableButton('telegram-bot-scan-btn', 'red');
-    
-    updateStatus(`Scanning active! Started at the yellow line. Scroll down to capture all links below it.`);
-    
-    scanInterval = setInterval(scanForLinks, 200);
 }
 
 function clearLinks() {
-    if (isRunning || selectionState === 'SCANNING') return;
+    if (isRunning) return;
     linksToProcess = [];
-    ignoredLinks = new Set();
+    collectedUrls.clear();
+    ignoredUrls.clear();
+    
     const runBtn = document.getElementById('telegram-bot-run-btn');
     runBtn.innerText = 'Process 0 Links';
     disableButton('telegram-bot-run-btn');
     disableButton('telegram-bot-clear-btn');
     removeScannerLine();
     
+    selectionState = 'IDLE';
+    if (scanInterval) clearInterval(scanInterval);
+    document.body.style.cursor = 'default';
+    
     const scanBtn = document.getElementById('telegram-bot-scan-btn');
-    scanBtn.innerText = 'Select Start & Scan';
+    scanBtn.innerText = 'Select Start & End';
     enableButton('telegram-bot-scan-btn', 'orange');
     
     updateStatus("Links cleared. Ready to start over.");
 }
 
 function scanForLinks() {
-    if (!startNode) return;
-    
-    const currentLinks = getAllXLinks();
-    let newLinksCount = 0;
+    const currentLinks = getAllXLinksRaw();
     
     currentLinks.forEach(linkItem => {
-        if (!ignoredLinks.has(linkItem.url) && !linksToProcess.includes(linkItem.url)) {
-            // Check if link node is after or inside the startNode in the DOM
-            const position = startNode.compareDocumentPosition(linkItem.node);
-            const isAfterOrInside = (position & Node.DOCUMENT_POSITION_FOLLOWING) || 
-                                    (position & Node.DOCUMENT_POSITION_CONTAINED_BY) || 
-                                    startNode === linkItem.node;
-            
-            if (isAfterOrInside) {
-                linksToProcess.push(linkItem.url);
-                newLinksCount++;
-            }
+        let normalized = normalizeTwitterUrl(linkItem.url);
+        if (!ignoredUrls.has(normalized)) {
+            collectedUrls.add(normalized);
         }
     });
     
-    if (newLinksCount > 0) {
-        updateStatus(`Scanning active! Scanned ${linksToProcess.length} links so far. Scroll down to scan more.`);
+    if (collectedUrls.size > 0) {
+        updateStatus(`Scanning... Found ${collectedUrls.size} unique links.\nScroll down and click END.`);
     }
 }
 
-function getAllXLinks() {
+function getAllXLinksRaw() {
     const result = [];
     const urlRegex = /(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)(?:\/[^\s<>"']*)?/gi;
     
-    // 1. Get from 'a' tags
     const aTags = Array.from(document.querySelectorAll('a'));
     aTags.forEach(a => {
+        // Only process links inside actual message containers to avoid sidebar links
+        if (!a.closest('.message, .Message, .message-list-item, .im_message_wrap, .bubble, [data-message-id], [data-msg-id]')) {
+            return;
+        }
+        
         let href = a.href || '';
         let text = a.textContent || '';
         
@@ -345,22 +437,23 @@ function getAllXLinks() {
                 const match = text.match(/(?:https?:\/\/)?(?:www\.)?(?:x\.com|twitter\.com)(?:\/[^\s<>"']*)?/i);
                 if (match) {
                     finalUrl = match[0].replace(/[.,;!?)]+$/, '');
-                    if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
                 }
             }
-            
             if (finalUrl) {
+                if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
                 result.push({ url: finalUrl, node: a });
             }
         }
     });
 
-    // 2. Get from text nodes
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
     let node;
     while ((node = walker.nextNode())) {
-        if (node.parentElement && node.parentElement.closest('a')) continue;
-        if (node.parentElement && (node.parentElement.tagName === 'SCRIPT' || node.parentElement.tagName === 'STYLE')) continue;
+        if (!node.parentElement) continue;
+        if (node.parentElement.closest('a')) continue;
+        if (node.parentElement.tagName === 'SCRIPT' || node.parentElement.tagName === 'STYLE') continue;
+        // Only process text nodes inside actual message containers
+        if (!node.parentElement.closest('.message, .Message, .message-list-item, .im_message_wrap, .bubble, [data-message-id], [data-msg-id]')) continue;
         
         const text = node.nodeValue;
         if (text && (text.toLowerCase().includes('x.com') || text.toLowerCase().includes('twitter.com'))) {
@@ -369,23 +462,12 @@ function getAllXLinks() {
             while ((match = urlRegex.exec(text)) !== null) {
                 let url = match[0].replace(/[.,;!?)]+$/, '');
                 if (!url.startsWith('http')) url = 'https://' + url;
-                
                 result.push({ url: url, node: node.parentElement });
             }
         }
     }
     
-    // Remove duplicates
-    const unique = [];
-    const seen = new Set();
-    result.forEach(item => {
-        if (!seen.has(item.url)) {
-            seen.add(item.url);
-            unique.push(item);
-        }
-    });
-    
-    return unique;
+    return result;
 }
 
 async function startProcessing() {
@@ -407,9 +489,8 @@ function processNextLink() {
         isRunning = false;
         
         const scanBtn = document.getElementById('telegram-bot-scan-btn');
-        scanBtn.innerText = 'Continue Scanning';
-        enableButton('telegram-bot-scan-btn', 'green');
-        
+        scanBtn.innerText = 'Start New Selection';
+        enableButton('telegram-bot-scan-btn', 'orange');
         enableButton('telegram-bot-clear-btn', 'orange');
         return;
     }
@@ -430,25 +511,17 @@ function processNextLink() {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'next_link') {
-        // Add a reaction to the link we just processed
         const processedUrl = linksToProcess[currentIndex];
-        if (processedUrl) {
-            reactToMessage(processedUrl);
-        }
+        if (processedUrl) reactToMessage(processedUrl);
         
         currentIndex++;
         chrome.storage.local.get(['timeLimit'], (res) => {
             const delayInSeconds = (res.timeLimit !== undefined) ? parseInt(res.timeLimit, 10) : 0;
-            
             if (delayInSeconds > 0 && currentIndex < linksToProcess.length) {
                 updateStatus(`Waiting ${delayInSeconds}s before next link...`);
-                setTimeout(() => {
-                    processNextLink();
-                }, delayInSeconds * 1000);
+                setTimeout(() => processNextLink(), delayInSeconds * 1000);
             } else {
-                setTimeout(() => {
-                    processNextLink();
-                }, 1000);
+                setTimeout(() => processNextLink(), 1000);
             }
         });
         sendResponse({ success: true });
@@ -459,33 +532,30 @@ function reactToMessage(url) {
     try {
         const aTags = Array.from(document.querySelectorAll('a'));
         let targetA = null;
+        
+        let normalizedTarget = normalizeTwitterUrl(url);
+        
         for (let a of aTags) {
             let href = a.href || '';
             let text = a.textContent || '';
-            if (href === url || href.includes(url) || text.includes(url)) {
+            
+            let normalizedHref = normalizeTwitterUrl(href);
+            if (normalizedHref === normalizedTarget || text.includes(url)) {
                 targetA = a;
                 break;
             }
         }
         
         if (targetA) {
-            // Try to find the message container
             let container = targetA.closest('.message, .Message, .bubble, .message-list-item');
-            if (!container) {
-                container = targetA.parentElement; 
-            }
+            if (!container) container = targetA.parentElement; 
             
             if (container) {
-                // Simulate double click to trigger Telegram's default quick reaction
                 const dblClickEvent = new MouseEvent('dblclick', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window
+                    bubbles: true, cancelable: true, view: window
                 });
                 container.dispatchEvent(dblClickEvent);
-                console.log("[Telegram-Bot] Sent double-click reaction to:", url);
                 
-                // Add a visual indicator to the link locally as well
                 targetA.style.border = "2px solid #10b981";
                 targetA.style.borderRadius = "4px";
                 targetA.style.padding = "2px";
@@ -505,9 +575,7 @@ function reactToMessage(url) {
 }
 
 chrome.storage.local.get(['enabled'], (res) => {
-    if (res.enabled) {
-        createStatusUI();
-    }
+    if (res.enabled) createStatusUI();
 });
 
 chrome.storage.onChanged.addListener((changes) => {
@@ -518,9 +586,11 @@ chrome.storage.onChanged.addListener((changes) => {
             const el = document.getElementById('telegram-bot-status');
             if (el) el.remove();
             isRunning = false;
-            isScanning = false;
             if (scanInterval) clearInterval(scanInterval);
             linksToProcess = [];
+            collectedUrls.clear();
+            ignoredUrls.clear();
+            removeScannerLine();
         }
     }
 });

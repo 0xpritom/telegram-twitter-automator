@@ -134,27 +134,7 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
             tweetLang = translationMatch[1];
         }
         
-        updateStatus(`Simulating human reading... scrolling down`);
-        
-        const readTimeSec = Math.floor(Math.random() * (readMax - readMin + 1)) + readMin;
-        const readTimeMs = readTimeSec * 1000;
-        updateStatus(`Reading tweet and comments for ${readTimeSec}s...`);
-        
-        const startTime = Date.now();
-        // Keep scrolling and pausing as long as we have reading time left
-        while (Date.now() - startTime < readTimeMs) {
-            window.scrollBy({ top: Math.floor(Math.random() * 300) + 200, behavior: 'smooth' });
-            
-            const timeLeft = readTimeMs - (Date.now() - startTime);
-            if (timeLeft <= 0) break;
-            
-            const pauseTime = Math.min(Math.floor(Math.random() * 1000) + 1000, timeLeft);
-            await sleep(pauseTime);
-        }
-        
-        updateStatus(`Scrolling back to tweet...`);
-        tweet.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await randomDelay(1000, 2000);
+
         
         updateStatus(`Thinking of a reply using Grok AI...`, tweet);
         
@@ -197,26 +177,18 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
             
             const textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
             if (textBox) {
-                updateStatus(`Typing reply letter-by-letter...`, tweet);
+                updateStatus(`Pasting reply...`, tweet);
                 textBox.focus();
                 await randomDelay(500, 1000);
                 
-                // Type letter by letter using DataTransfer paste to bypass Draft.js insertText bugs
-                const chars = replyText.split(''); 
-                for (let i = 0; i < chars.length; i++) {
-                    const char = chars[i];
-                    
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.setData('text/plain', char);
-                    
-                    textBox.dispatchEvent(new ClipboardEvent('paste', {
-                        clipboardData: dataTransfer,
-                        bubbles: true,
-                        cancelable: true
-                    }));
-                    
-                    await randomDelay(30, 90); // realistic fast typing delay between letters
-                }
+                const dataTransfer = new DataTransfer();
+                dataTransfer.setData('text/plain', replyText);
+                
+                textBox.dispatchEvent(new ClipboardEvent('paste', {
+                    clipboardData: dataTransfer,
+                    bubbles: true,
+                    cancelable: true
+                }));
                 
                 await randomDelay(1000, 1500);
                 
