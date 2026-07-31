@@ -108,6 +108,13 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
             return finishProcess(false);
         }
         
+        const unlikeBtn = tweet.querySelector('[data-testid="unlike"]');
+        if (unlikeBtn) {
+            updateStatus("Tweet is already liked! Skipping entire process for extra safety...", tweet);
+            await randomDelay(1500, 2500);
+            return finishProcess(true);
+        }
+        
         if (actionMode === 'like' || actionMode === 'both') {
             updateStatus("Liking the tweet...", tweet);
             const likeBtn = tweet.querySelector('[data-testid="like"]');
@@ -115,7 +122,7 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
                 simulateClick(likeBtn);
                 await randomDelay(1500, 2500);
             } else {
-                updateStatus("Like button not found or already liked.", tweet);
+                updateStatus("Like button not found.", tweet);
                 await randomDelay(1000, 1500);
             }
             
