@@ -134,7 +134,26 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
             tweetLang = translationMatch[1];
         }
         
-
+        let tweetId = null;
+        try {
+            let match = window.location.href.match(/\/status\/(\d+)/);
+            if (!match) match = window.location.href.match(/tweet_id=(\d+)/);
+            if (match) tweetId = match[1];
+        } catch(e) {}
+        
+        if (tweetId && (actionMode === 'comment' || actionMode === 'both')) {
+            const isReplied = await new Promise(resolve => {
+                chrome.storage.local.get(['repliedTweetsHistory'], (res) => {
+                    resolve((res.repliedTweetsHistory || []).includes(tweetId));
+                });
+            });
+            
+            if (isReplied) {
+                updateStatus("Already replied to this tweet previously! Skipping comment...", tweet);
+                await randomDelay(1500, 2500);
+                return finishProcess(true);
+            }
+        }
         
         updateStatus(`Thinking of a reply using Grok AI...`, tweet);
         
@@ -163,6 +182,14 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
             updateStatus("AI generated an empty reply.", tweet);
             await randomDelay(2000, 2000);
             return finishProcess(false);
+        }
+        
+        replyText = replyText.trim();
+        if (replyText.length > 0) {
+            replyText = replyText.charAt(0).toUpperCase() + replyText.slice(1);
+        }
+        if (replyText.endsWith('.')) {
+            replyText = replyText.slice(0, -1);
         }
 
         updateStatus(`Generated Reply:\n"${replyText}"\n\nPreparing to click...`, tweet);
@@ -196,6 +223,17 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
                 if (submitBtn && !submitBtn.disabled) {
                     updateStatus(`Clicking send...`, tweet);
                     simulateClick(submitBtn);
+                    
+                    if (tweetId) {
+                        chrome.storage.local.get(['repliedTweetsHistory'], (res) => {
+                            let history = res.repliedTweetsHistory || [];
+                            if (!history.includes(tweetId)) {
+                                history.push(tweetId);
+                                if (history.length > 1000) history = history.slice(-1000);
+                                chrome.storage.local.set({ repliedTweetsHistory: history });
+                            }
+                        });
+                    }
                     
                     updateStatus(`Reply process finished! Moving back to Telegram...`, tweet);
                     await randomDelay(2000, 3000);
