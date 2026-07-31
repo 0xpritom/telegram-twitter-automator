@@ -91,12 +91,17 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
     await randomDelay(2000, 3000);
     
     try {
-        updateStatus("Looking for the main tweet...");
-        // Get the first tweet on the page, which is usually the main one when opened via link
-        const tweet = document.querySelector('article[data-testid="tweet"]');
+        updateStatus("Waiting for the page to fully load...");
+        
+        let tweet = null;
+        for (let i = 0; i < 30; i++) { // Poll every 500ms for up to 15 seconds
+            tweet = document.querySelector('article[data-testid="tweet"]');
+            if (tweet) break;
+            await sleep(500);
+        }
         
         if (!tweet) {
-            updateStatus("No tweet found on this page.");
+            updateStatus("No tweet found on this page after waiting.");
             await randomDelay(2000, 3000);
             return finishProcess(false);
         }
