@@ -1,6 +1,66 @@
 let telegramTabId = null;
+let desktopTabId = null;
+let desktopQueue = [];
+let isProcessingDesktop = false;
+let ws = null;
+
+function connectWebSocket() {
+    ws = new WebSocket('ws://localhost:8765');
+    
+    ws.onopen = () => {
+        console.log("[Desktop Bridge] Connected to Python Server");
+    };
+    
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.action === 'new_links' && data.links) {
+                let added = 0;
+                for (let link of data.links) {
+                    if (!desktopQueue.includes(link)) {
+                        desktopQueue.push(link);
+                        added++;
+                    }
+                }
+                console.log(`[Desktop Bridge] Added ${added} new links. Queue size: ${desktopQueue.length}`);
+                
+                if (!isProcessingDesktop && desktopQueue.length > 0) {
+                    processNextDesktopLink();
+                }
+            }
+        } catch (e) {
+            console.error("WebSocket message error:", e);
+        }
+    };
+    
+    ws.onclose = () => {
+        setTimeout(connectWebSocket, 5000); 
+    };
+}
+
+connectWebSocket();
+
+function processNextDesktopLink() {
+    if (desktopQueue.length === 0) {
+        isProcessingDesktop = false;
+        console.log("[Desktop Bridge] All links processed.");
+        return;
+    }
+    
+    isProcessingDesktop = true;
+    const url = desktopQueue[0];
+    
+    chrome.tabs.create({ url: url, active: true }, (tab) => {
+        desktopTabId = tab.id;
+    });
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'get_ws_status') {
+        sendResponse({ connected: ws && ws.readyState === WebSocket.OPEN });
+        return true;
+    }
+    
     if (request.action === 'generate') {
         generateComment(request.text, request.lang)
             .then(reply => sendResponse({ reply }))
@@ -20,9 +80,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'twitter_done' || request.action === 'twitter_error') {
         if (sender.tab && sender.tab.id) {
             chrome.tabs.remove(sender.tab.id);
-        }
-        if (telegramTabId) {
-            chrome.tabs.sendMessage(telegramTabId, { action: 'next_link' });
+            
+            if (sender.tab.id === desktopTabId) {
+                desktopTabId = null;
+                chrome.storage.local.get(['timeLimit'], (res) => {
+                    const delay = (res.timeLimit !== undefined) ? parseInt(res.timeLimit, 10) * 1000 : 1000;
+                    setTimeout(() => {
+                        desktopQueue.shift();
+                        processNextDesktopLink();
+                    }, delay);
+                });
+            } else if (telegramTabId) {
+                chrome.tabs.sendMessage(telegramTabId, { action: 'next_link' });
+            }
         }
         sendResponse({ success: true });
         return true;

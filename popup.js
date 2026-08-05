@@ -8,6 +8,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageEl = document.getElementById('message');
     const statusText = document.getElementById('status-text');
     const statusDot = document.getElementById('status-dot');
+    const desktopText = document.getElementById('desktop-text');
+    const desktopDot = document.getElementById('desktop-dot');
+    
+    function checkDesktopBridge() {
+        chrome.runtime.sendMessage({ action: 'get_ws_status' }, (response) => {
+            if (chrome.runtime.lastError || !response || !response.connected) {
+                if (desktopText) {
+                    desktopText.textContent = "Desktop Bridge: Disconnected";
+                    desktopText.style.color = "#94a3b8";
+                    desktopDot.style.background = "#94a3b8";
+                    desktopDot.style.boxShadow = "none";
+                }
+            } else {
+                if (desktopText) {
+                    desktopText.textContent = "Desktop Bridge: Connected";
+                    desktopText.style.color = "#3b82f6";
+                    desktopDot.style.background = "#3b82f6";
+                    desktopDot.style.boxShadow = "0 0 10px rgba(59, 130, 246, 0.4)";
+                }
+            }
+        });
+    }
+    
+    checkDesktopBridge();
+    setInterval(checkDesktopBridge, 2000);
 
     function updateUI(enabled) {
         if (enabled) {
