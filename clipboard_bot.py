@@ -55,7 +55,7 @@ def extract_x_links(text):
 # Store connected Chrome Extension clients
 connected_clients = set()
 
-async def websocket_handler(websocket, path):
+async def websocket_handler(websocket):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Chrome Extension Connected!")
     connected_clients.add(websocket)
     try:

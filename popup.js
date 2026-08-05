@@ -13,12 +13,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const desktopDot = document.getElementById('desktop-dot');
     
     function checkDesktopBridge() {
+        if (!toggleDesktop.checked) {
+            if (desktopText) {
+                desktopText.textContent = "Disabled";
+                desktopText.style.color = "#94a3b8";
+                desktopDot.style.background = "#94a3b8";
+                desktopDot.style.boxShadow = "none";
+            }
+            return;
+        }
+
         chrome.runtime.sendMessage({ action: 'get_ws_status' }, (response) => {
             if (chrome.runtime.lastError || !response || !response.connected) {
                 if (desktopText) {
                     desktopText.textContent = "Disconnected";
-                    desktopText.style.color = "#94a3b8";
-                    desktopDot.style.background = "#94a3b8";
+                    desktopText.style.color = "#f87171"; // Red to show it's enabled but not working
+                    desktopDot.style.background = "#f87171";
                     desktopDot.style.boxShadow = "none";
                 }
             } else {
@@ -31,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    toggleDesktop.addEventListener('change', checkDesktopBridge);
     
     checkDesktopBridge();
     setInterval(checkDesktopBridge, 2000);
