@@ -15,18 +15,25 @@ function connectWebSocket() {
         try {
             const data = JSON.parse(event.data);
             if (data.action === 'new_links' && data.links) {
-                let added = 0;
-                for (let link of data.links) {
-                    if (!desktopQueue.includes(link)) {
-                        desktopQueue.push(link);
-                        added++;
+                chrome.storage.local.get(['desktopEnabled'], (res) => {
+                    if (!res.desktopEnabled) {
+                        console.log("[Desktop Bridge] Links received, but Desktop Bridge is disabled in settings. Ignoring.");
+                        return;
                     }
-                }
-                console.log(`[Desktop Bridge] Added ${added} new links. Queue size: ${desktopQueue.length}`);
-                
-                if (!isProcessingDesktop && desktopQueue.length > 0) {
-                    processNextDesktopLink();
-                }
+                    
+                    let added = 0;
+                    for (let link of data.links) {
+                        if (!desktopQueue.includes(link)) {
+                            desktopQueue.push(link);
+                            added++;
+                        }
+                    }
+                    console.log(`[Desktop Bridge] Added ${added} new links. Queue size: ${desktopQueue.length}`);
+                    
+                    if (!isProcessingDesktop && desktopQueue.length > 0) {
+                        processNextDesktopLink();
+                    }
+                });
             }
         } catch (e) {
             console.error("WebSocket message error:", e);
