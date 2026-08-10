@@ -147,10 +147,16 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
         }
         
         let tweetId = null;
+        let authorName = null;
         try {
             let match = window.location.href.match(/\/status\/(\d+)/);
             if (!match) match = window.location.href.match(/tweet_id=(\d+)/);
             if (match) tweetId = match[1];
+
+            const userNameEl = tweet.querySelector('div[data-testid="User-Name"]');
+            if (userNameEl) {
+                authorName = userNameEl.innerText.split('\n')[0].trim();
+            }
         } catch(e) {}
         
         if (tweetId && (actionMode === 'comment' || actionMode === 'both')) {
@@ -171,8 +177,8 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
         
         let replyText = null;
         try {
-            replyText = await new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({ action: 'generate', text: tweetText, lang: tweetLang }, (response) => {
+                    replyText = await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({ action: 'generate', text: tweetText, lang: tweetLang, author: authorName }, (response) => {
                     if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
                     else if (response && response.error) reject(new Error(response.error));
                     else resolve(response.reply);
