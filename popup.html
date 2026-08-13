@@ -3,27 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram to X Automator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>X Link Paster Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+    <div class="glow-bg"></div>
     <div class="app-container">
         
-        <div class="logo-container">
-            <div class="logo-glow"></div>
-            <img src="icon.png" alt="Logo" class="logo-img">
-        </div>
-        
-        <h1 class="app-title">Telegram to X Automator</h1>
-        <p class="app-subtitle">Smart AI Auto-Commenter</p>
-        
-        <div class="status-card">
-            <div style="display: flex; flex-direction: column;">
-                <span style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Master Switch</span>
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <img src="icon.png" alt="Logo" class="logo-img">
+            </div>
+            <div class="header-text">
+                <h1 class="app-title">X LINK PASTER ENGINE</h1>
+                <p class="app-subtitle">AI-Powered Engagement Protocol</p>
+            </div>
+        </header>
+
+        <!-- Main Controls -->
+        <div class="card row-card">
+            <div class="status-col">
+                <span class="label">Master Switch</span>
                 <div class="status-info">
                     <div class="status-indicator" id="status-dot"></div>
-                    <span id="status-text" style="font-weight: 700; font-size: 0.9rem;">Inactive</span>
+                    <span id="status-text">Inactive</span>
                 </div>
             </div>
             <label class="switch">
@@ -32,55 +38,54 @@
             </label>
         </div>
 
-        <div class="dashboard-card" style="margin-top: 10px; padding: 16px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; flex-direction: column;">
-                <span style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Bulk Link Automation</span>
-                <span style="font-size: 0.85rem; font-weight: 500; color: #0f172a;">Paste your links to process them automatically.</span>
-            </div>
-            <button id="open-dashboard-btn" class="btn-primary" style="margin-top: 8px; width: 100%;">Open Bulk Link Paster</button>
-        </div>
+        <button id="open-dashboard-btn" class="btn-primary" style="margin-bottom: 12px;">Open Automator Dashboard</button>
 
-        <div class="settings-card">
+        <!-- Settings -->
+        <div class="card settings-card">
             <div class="form-group">
                 <label>Action Mode</label>
                 <div class="radio-group">
                     <label class="radio-label">
                         <input type="radio" name="action-mode" value="like" id="mode-like">
-                        <span class="radio-text">Like Only</span>
+                        <span class="radio-text">Like</span>
                     </label>
                     <label class="radio-label">
                         <input type="radio" name="action-mode" value="comment" id="mode-comment" checked>
-                        <span class="radio-text">Comment Only</span>
+                        <span class="radio-text">Comment</span>
                     </label>
                     <label class="radio-label">
                         <input type="radio" name="action-mode" value="both" id="mode-both">
-                        <span class="radio-text">Like & Comment</span>
+                        <span class="radio-text">Both</span>
                     </label>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="time-limit">Tab Wait Time (Seconds)</label>
-                <input type="number" id="time-limit" min="0" max="60" value="3" placeholder="e.g. 3">
-            </div>
-
-            <div class="form-group">
-                <label>Reading Time (Seconds)</label>
-                <div class="input-row">
-                    <input type="number" id="read-min" min="0" max="30" value="3" placeholder="Min">
-                    <span class="row-divider">-</span>
-                    <input type="number" id="read-max" min="0" max="30" value="7" placeholder="Max">
+            <div class="row-inputs">
+                <div class="form-group small-input">
+                    <label for="time-limit">Tab Wait (s)</label>
+                    <input type="number" id="time-limit" min="0" max="60" value="3">
+                </div>
+                <div class="form-group small-input">
+                    <label>Read Time (s)</label>
+                    <div class="input-row">
+                        <input type="number" id="read-min" min="0" max="30" value="3" placeholder="Min">
+                        <span>-</span>
+                        <input type="number" id="read-max" min="0" max="30" value="7" placeholder="Max">
+                    </div>
                 </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="margin-top: 8px;">
                 <label for="api-key">Groq API Key</label>
                 <input type="password" id="api-key" placeholder="gsk_...">
             </div>
         </div>
 
-        <button id="save-btn" class="btn-primary">Save Settings</button>
-        <div id="message"></div>
+        <!-- Footer -->
+        <div class="footer-actions">
+            <button id="save-btn" class="btn-primary btn-save">Save Config</button>
+            <div id="message"></div>
+        </div>
         
     </div>
     <script src="popup.js"></script>
