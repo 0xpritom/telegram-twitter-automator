@@ -81,9 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
             progressText.textContent = `Processing ${currentIndex} of ${total}`;
             
             // Update link items
+            let errorCount = request.errorIndices ? request.errorIndices.length : 0;
             document.querySelectorAll('.link-item').forEach((item, idx) => {
-                item.classList.remove('active');
-                if (idx < currentIndex) {
+                item.classList.remove('active', 'done', 'error');
+                
+                if (request.errorIndices && request.errorIndices.includes(idx)) {
+                    item.classList.add('error');
+                } else if (idx < currentIndex) {
                     item.classList.add('done');
                 } else if (idx === currentIndex && status !== 'stopped' && status !== 'done') {
                     item.classList.add('active');
@@ -100,13 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (status === 'done') {
                     queueStatus.textContent = 'Completed';
                     queueStatus.className = 'status-text done';
-                    progressText.textContent = `Finished processing ${total} links.`;
+                    progressText.textContent = `Finished ${total} links. ${errorCount} failed.`;
                     progressBar.style.width = '100%';
                     progressBar.style.background = '#10b981';
                 } else {
                     queueStatus.textContent = 'Stopped';
                     queueStatus.className = 'status-text idle';
-                    progressText.textContent = `Stopped at ${currentIndex} of ${total}.`;
+                    progressText.textContent = `Stopped at ${currentIndex} of ${total}. Failed: ${errorCount}`;
                 }
             }
         }

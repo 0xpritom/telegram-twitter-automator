@@ -30,12 +30,15 @@ let currentIndex = 0;
 let isProcessing = false;
 let currentWorkerTabId = null;
 
+let errorIndices = [];
+
 function broadcastProgress(status) {
     chrome.runtime.sendMessage({
         action: 'bulk_progress',
         currentIndex,
         total: bulkQueue.length,
-        status: status // 'running', 'done', 'stopped'
+        status: status, // 'running', 'done', 'stopped'
+        errorIndices: errorIndices
     }).catch(() => {
         // Ignore errors if dashboard is not open
     });
@@ -51,6 +54,7 @@ function processNextBulkLink() {
         isProcessing = false;
         bulkQueue = [];
         currentIndex = 0;
+        errorIndices = [];
         broadcastProgress('done');
         return;
     }
@@ -68,6 +72,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'start_bulk') {
         bulkQueue = request.links || [];
         currentIndex = 0;
+        errorIndices = [];
         isProcessing = true;
         processNextBulkLink();
         sendResponse({ success: true });
@@ -90,7 +95,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             isRunning: isProcessing,
             currentIndex: currentIndex,
             total: bulkQueue.length,
-            links: bulkQueue
+            links: bulkQueue,
+            errorIndices: errorIndices
         });
         return true;
     }
@@ -101,6 +107,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.tabs.remove(sender.tab.id).catch(() => {});
             currentWorkerTabId = null;
             
+            if (request.action === 'twitter_error') {
+                errorIndices.push(currentIndex);
+            }
+
             if (isProcessing) {
                 currentIndex++;
                 chrome.storage.local.get(['timeLimit'], (res) => {

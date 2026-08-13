@@ -94,16 +94,29 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
         updateStatus("Waiting for the page to fully load...");
         
         let tweet = null;
-        for (let i = 0; i < 30; i++) { // Poll every 500ms for up to 15 seconds
+        for (let i = 0; i < 40; i++) { // Poll every 500ms for up to 20 seconds
             tweet = document.querySelector('article[data-testid="tweet"]');
             if (tweet) break;
             await sleep(500);
         }
         
         if (!tweet) {
-            updateStatus("No tweet found on this page after waiting.");
-            await randomDelay(2000, 3000);
-            return finishProcess(false);
+            let attempt = parseInt(sessionStorage.getItem('x_bot_attempt') || '1', 10);
+            if (attempt === 1) {
+                updateStatus("Tweet didn't load within 20s. Reloading page...");
+                sessionStorage.setItem('x_bot_attempt', '2');
+                await sleep(1000);
+                window.location.reload();
+                return; // Stop execution, script will run again on reload
+            } else {
+                updateStatus("Tweet didn't load even after refresh. Skipping this link...");
+                sessionStorage.removeItem('x_bot_attempt'); // Reset
+                await sleep(2000);
+                return finishProcess(false);
+            }
+        } else {
+            // Success, remove attempt counter just in case
+            sessionStorage.removeItem('x_bot_attempt');
         }
 
         const textElement = tweet.querySelector('div[data-testid="tweetText"]');
