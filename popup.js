@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('api-key');
     const toggleBot = document.getElementById('toggle-bot');
-    const toggleDesktop = document.getElementById('toggle-desktop');
     const timeLimitInput = document.getElementById('time-limit');
     const readMinInput = document.getElementById('read-min');
     const readMaxInput = document.getElementById('read-max');
@@ -9,43 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageEl = document.getElementById('message');
     const statusText = document.getElementById('status-text');
     const statusDot = document.getElementById('status-dot');
-    const desktopText = document.getElementById('desktop-text');
-    const desktopDot = document.getElementById('desktop-dot');
+    const openDashboardBtn = document.getElementById('open-dashboard-btn');
     
-    function checkDesktopBridge() {
-        if (!toggleDesktop.checked) {
-            if (desktopText) {
-                desktopText.textContent = "Disabled";
-                desktopText.style.color = "#94a3b8";
-                desktopDot.style.background = "#94a3b8";
-                desktopDot.style.boxShadow = "none";
-            }
-            return;
-        }
-
-        chrome.runtime.sendMessage({ action: 'get_ws_status' }, (response) => {
-            if (chrome.runtime.lastError || !response || !response.connected) {
-                if (desktopText) {
-                    desktopText.textContent = "Disconnected";
-                    desktopText.style.color = "#f87171"; // Red to show it's enabled but not working
-                    desktopDot.style.background = "#f87171";
-                    desktopDot.style.boxShadow = "none";
-                }
-            } else {
-                if (desktopText) {
-                    desktopText.textContent = "Connected";
-                    desktopText.style.color = "#3b82f6";
-                    desktopDot.style.background = "#3b82f6";
-                    desktopDot.style.boxShadow = "0 0 10px rgba(59, 130, 246, 0.4)";
-                }
-            }
+    // Open Dashboard Button
+    if (openDashboardBtn) {
+        openDashboardBtn.addEventListener('click', () => {
+            chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
         });
     }
-    
-    toggleDesktop.addEventListener('change', checkDesktopBridge);
-    
-    checkDesktopBridge();
-    setInterval(checkDesktopBridge, 2000);
 
     function updateUI(enabled) {
         if (enabled) {
@@ -62,14 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load saved settings
-    chrome.storage.local.get(['apiKey', 'enabled', 'desktopEnabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
+    chrome.storage.local.get(['apiKey', 'enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
         if (result.apiKey) apiKeyInput.value = result.apiKey;
         if (result.timeLimit !== undefined) timeLimitInput.value = result.timeLimit;
         if (result.readMin !== undefined) readMinInput.value = result.readMin;
         if (result.readMax !== undefined) readMaxInput.value = result.readMax;
-        
-        if (result.desktopEnabled !== undefined) toggleDesktop.checked = result.desktopEnabled;
-        else toggleDesktop.checked = false;
         
         if (result.actionMode) {
             const radio = document.querySelector(`input[name="action-mode"][value="${result.actionMode}"]`);
@@ -83,14 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.addEventListener('click', () => {
         const apiKey = apiKeyInput.value.trim();
         const enabled = toggleBot.checked;
-        const desktopEnabled = toggleDesktop.checked;
         const timeLimit = parseInt(timeLimitInput.value, 10) || 0;
         const readMin = parseInt(readMinInput.value, 10) || 3;
         const readMax = parseInt(readMaxInput.value, 10) || 7;
         const actionModeRadio = document.querySelector('input[name="action-mode"]:checked');
         const actionMode = actionModeRadio ? actionModeRadio.value : 'comment';
 
-        chrome.storage.local.set({ apiKey, enabled, desktopEnabled, actionMode, timeLimit, readMin, readMax }, () => {
+        // Clean up desktopEnabled since we no longer use it
+        chrome.storage.local.remove(['desktopEnabled']);
+        
+        chrome.storage.local.set({ apiKey, enabled, actionMode, timeLimit, readMin, readMax }, () => {
             messageEl.textContent = 'Settings saved successfully!';
             updateUI(enabled);
             

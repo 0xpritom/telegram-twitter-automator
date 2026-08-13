@@ -24,111 +24,101 @@ const casualWordBank = [
     "legendary", "god tier", "top tier", "mid"
 ];
 
-let telegramTabId = null;
-let desktopTabId = null;
-let desktopQueue = [];
-let isProcessingDesktop = false;
-let ws = null;
+// Bulk Processing State
+let bulkQueue = [];
+let currentIndex = 0;
+let isProcessing = false;
+let currentWorkerTabId = null;
 
-function connectWebSocket() {
-    ws = new WebSocket('ws://localhost:8765');
-    
-    ws.onopen = () => {
-        console.log("[Desktop Bridge] Connected to Python Server");
-    };
-    
-    ws.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.action === 'new_links' && data.links) {
-                chrome.storage.local.get(['desktopEnabled'], (res) => {
-                    if (!res.desktopEnabled) {
-                        console.log("[Desktop Bridge] Links received, but Desktop Bridge is disabled in settings. Ignoring.");
-                        return;
-                    }
-                    
-                    let added = 0;
-                    for (let link of data.links) {
-                        if (!desktopQueue.includes(link)) {
-                            desktopQueue.push(link);
-                            added++;
-                        }
-                    }
-                    console.log(`[Desktop Bridge] Added ${added} new links. Queue size: ${desktopQueue.length}`);
-                    
-                    if (!isProcessingDesktop && desktopQueue.length > 0) {
-                        processNextDesktopLink();
-                    }
-                });
-            }
-        } catch (e) {
-            console.error("WebSocket message error:", e);
-        }
-    };
-    
-    ws.onclose = () => {
-        setTimeout(connectWebSocket, 5000); 
-    };
+function broadcastProgress(status) {
+    chrome.runtime.sendMessage({
+        action: 'bulk_progress',
+        currentIndex,
+        total: bulkQueue.length,
+        status: status // 'running', 'done', 'stopped'
+    }).catch(() => {
+        // Ignore errors if dashboard is not open
+    });
 }
 
-connectWebSocket();
-
-function processNextDesktopLink() {
-    if (desktopQueue.length === 0) {
-        isProcessingDesktop = false;
-        console.log("[Desktop Bridge] All links processed.");
+function processNextBulkLink() {
+    if (!isProcessing) {
+        broadcastProgress('stopped');
         return;
     }
-    
-    isProcessingDesktop = true;
-    const url = desktopQueue[0];
+
+    if (currentIndex >= bulkQueue.length) {
+        isProcessing = false;
+        bulkQueue = [];
+        currentIndex = 0;
+        broadcastProgress('done');
+        return;
+    }
+
+    broadcastProgress('running');
+    const url = bulkQueue[currentIndex];
     
     chrome.tabs.create({ url: url, active: true }, (tab) => {
-        desktopTabId = tab.id;
+        currentWorkerTabId = tab.id;
     });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'get_ws_status') {
-        sendResponse({ connected: ws && ws.readyState === WebSocket.OPEN });
+    // --- Bulk Dashboard Handlers ---
+    if (request.action === 'start_bulk') {
+        bulkQueue = request.links || [];
+        currentIndex = 0;
+        isProcessing = true;
+        processNextBulkLink();
+        sendResponse({ success: true });
         return true;
     }
-    
+
+    if (request.action === 'stop_bulk') {
+        isProcessing = false;
+        if (currentWorkerTabId) {
+            chrome.tabs.remove(currentWorkerTabId).catch(() => {});
+            currentWorkerTabId = null;
+        }
+        broadcastProgress('stopped');
+        sendResponse({ success: true });
+        return true;
+    }
+
+    if (request.action === 'get_bulk_status') {
+        sendResponse({
+            isRunning: isProcessing,
+            currentIndex: currentIndex,
+            total: bulkQueue.length,
+            links: bulkQueue
+        });
+        return true;
+    }
+
+    // --- Content Script Handlers ---
+    if (request.action === 'twitter_done' || request.action === 'twitter_error') {
+        if (sender.tab && sender.tab.id && sender.tab.id === currentWorkerTabId) {
+            chrome.tabs.remove(sender.tab.id).catch(() => {});
+            currentWorkerTabId = null;
+            
+            if (isProcessing) {
+                currentIndex++;
+                chrome.storage.local.get(['timeLimit'], (res) => {
+                    const delay = (res.timeLimit !== undefined) ? parseInt(res.timeLimit, 10) * 1000 : 1000;
+                    setTimeout(processNextBulkLink, delay);
+                });
+            }
+        }
+        sendResponse({ success: true });
+        return true;
+    }
+
+    // --- Groq AI Generator ---
     if (request.action === 'generate') {
         generateComment(request.text, request.lang, request.author)
             .then(reply => sendResponse({ reply }))
             .catch(error => sendResponse({ error: error.message }));
         return true; 
-    }
-    
-    if (request.action === 'open_twitter_link') {
-        telegramTabId = sender.tab.id;
-        chrome.tabs.create({ url: request.url, active: true }, (tab) => {
-            // Tab created, Twitter content script will automatically run on load
-            sendResponse({ success: true, tabId: tab.id });
-        });
-        return true;
-    }
-
-    if (request.action === 'twitter_done' || request.action === 'twitter_error') {
-        if (sender.tab && sender.tab.id) {
-            chrome.tabs.remove(sender.tab.id);
-            
-            if (sender.tab.id === desktopTabId) {
-                desktopTabId = null;
-                chrome.storage.local.get(['timeLimit'], (res) => {
-                    const delay = (res.timeLimit !== undefined) ? parseInt(res.timeLimit, 10) * 1000 : 1000;
-                    setTimeout(() => {
-                        desktopQueue.shift();
-                        processNextDesktopLink();
-                    }, delay);
-                });
-            } else if (telegramTabId) {
-                chrome.tabs.sendMessage(telegramTabId, { action: 'next_link' });
-            }
-        }
-        sendResponse({ success: true });
-        return true;
     }
 });
 
@@ -157,8 +147,6 @@ async function generateComment(text, langCode, authorHandle) {
         questionInstruction = "Instead of making a statement, ask a highly relevant, genuine question about the project or topic discussed in the post.";
     }
 
-    // (Removed old contradictory mentionInstruction logic)
-    
     let languageInstruction = `CRITICAL RULE: The original post was written in this language: "${langCode}". You MUST write your reply entirely in that exact language (e.g., if it says Japanese or 'ja', you must reply in Japanese).`;
     if (!langCode || langCode === 'unknown') {
         languageInstruction = `CRITICAL RULE: You must write the comment in the EXACT SAME LANGUAGE as the original post.`;
@@ -173,7 +161,6 @@ async function generateComment(text, langCode, authorHandle) {
     const shuffledWords = casualWordBank.sort(() => 0.5 - Math.random());
     const randomWords = shuffledWords.slice(0, 6).join(", ");
     
-    // Extract @mentions from the text to enforce their usage
     const projectMentions = (text || "").match(/@\w+/g);
     let exactMentionRule = "Do not use the '@' symbol or any @usernames in your reply.";
     if (projectMentions && projectMentions.length > 0) {
@@ -230,9 +217,7 @@ Post: "${text}"`;
         
         let comment = result.choices[0].message.content.trim();
         
-        // Strip common prefixes AI sometimes adds
         comment = comment.replace(/^(Comment|Reply|Response):\s*/i, '');
-        // Aggressively strip any surrounding quotes (single or double)
         comment = comment.replace(/^["']+|["']+$/g, '');
         comment = comment.trim();
 

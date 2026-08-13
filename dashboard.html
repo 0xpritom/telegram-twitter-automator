@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Link Automator Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <img src="icon.png" alt="Logo" class="logo-img">
+            </div>
+            <div>
+                <h1 class="app-title">X Automator Dashboard</h1>
+                <p class="app-subtitle">Smart Bulk Link Processor</p>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="section-header">
+                    <h2>Paste Links Here</h2>
+                    <span class="badge" id="link-count-badge">0 Links Found</span>
+                </div>
+                <p class="help-text">Paste your Telegram messages or text blocks containing X/Twitter links. The system will automatically extract only the valid links.</p>
+                
+                <textarea id="bulk-input" placeholder="Paste your text here...
+Example:
+[8/13/2026 7:27 PM] Tajwan Tamim: https://x.com/Tajwan_Tamim/status/2087894224306057267
+[8/13/2026 7:27 PM] Master: https://x.com/Coinmaster100x/status/2087846098476167595"></textarea>
+                
+                <div class="action-row">
+                    <button id="extract-btn" class="btn-secondary">Extract Links</button>
+                    <button id="start-btn" class="btn-primary" disabled>Start Automator</button>
+                    <button id="stop-btn" class="btn-danger" style="display: none;">Stop</button>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <div class="section-header">
+                    <h2>Processing Queue</h2>
+                    <span id="queue-status" class="status-text idle">Idle</span>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <p class="progress-text" id="progress-text">Ready to process</p>
+                
+                <div class="link-list" id="link-list">
+                    <div class="empty-state">No links extracted yet</div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    <script src="dashboard.js"></script>
+</body>
+</html>

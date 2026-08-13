@@ -18,11 +18,6 @@
       "matches": ["*://*.twitter.com/*", "*://*.x.com/*"],
       "js": ["twitter_content.js"],
       "run_at": "document_end"
-    },
-    {
-      "matches": ["*://*.telegram.org/*"],
-      "js": ["telegram_content.js"],
-      "run_at": "document_end"
     }
   ],
   "action": {
