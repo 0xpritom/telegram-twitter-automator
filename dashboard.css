@@ -118,31 +118,37 @@ body {
 }
 
 /* Developer Badge */
-.header-right {
-    padding-bottom: 4px;
-}
-
-.dev-badge {
+.floating-dev-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 8px 16px;
-    border-radius: 12px;
+    background: rgba(17, 24, 39, 0.6);
+    padding: 6px 12px;
+    border-radius: 8px;
     border: 1px solid var(--border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    transition: opacity 0.3s ease;
+    opacity: 0.8;
+}
+
+.floating-dev-badge:hover {
+    opacity: 1;
 }
 
 .dev-label {
-    font-size: 0.7rem;
+    font-size: 0.55rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .dev-name {
-    font-size: 1.1rem;
+    font-size: 0.85rem;
     font-weight: 700;
     background: linear-gradient(135deg, #38bdf8, #818cf8);
     -webkit-background-clip: text;
