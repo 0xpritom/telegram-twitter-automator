@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Telegram to X Automator",
+  "name": "X-CORE DASHBOARD",
   "version": "1.0",
-  "description": "Automatically opens X links from Telegram and comments on them.",
+  "description": "Premium AI-Powered X (Twitter) Engagement Protocol",
   "permissions": ["storage", "tabs", "scripting"],
   "host_permissions": [
     "*://*.twitter.com/*",
