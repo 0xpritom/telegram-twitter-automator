@@ -3,57 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Link Automator Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Nexus Automator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
+    <div class="glow-bg"></div>
     <div class="dashboard-container">
         
         <header class="header">
-            <div class="logo-container">
-                <div class="logo-glow"></div>
-                <img src="icon.png" alt="Logo" class="logo-img">
+            <div class="header-left">
+                <div class="logo-container">
+                    <div class="logo-glow"></div>
+                    <img src="icon.png" alt="Logo" class="logo-img">
+                </div>
+                <div>
+                    <h1 class="app-title">NEXUS AUTOMATOR</h1>
+                    <p class="app-subtitle">AI-Powered Engagement Protocol</p>
+                </div>
             </div>
-            <div>
-                <h1 class="app-title">X Automator Dashboard</h1>
-                <p class="app-subtitle">Smart Bulk Link Processor</p>
+            <div class="header-right">
+                <div class="dev-badge">
+                    <span class="dev-label">Developed by</span>
+                    <span class="dev-name">Pritom Shihab</span>
+                </div>
             </div>
         </header>
         
         <div class="main-content">
-            <div class="input-section">
+            <div class="input-section glass-panel">
                 <div class="section-header">
-                    <h2>Paste Links Here</h2>
-                    <span class="badge" id="link-count-badge">0 Links Found</span>
+                    <h2>Data Ingestion</h2>
+                    <span class="badge" id="link-count-badge">0 Targets Acquired</span>
                 </div>
-                <p class="help-text">Paste your Telegram messages or text blocks containing X/Twitter links. The system will automatically extract only the valid links.</p>
+                <p class="help-text">Input raw data streams below. The engine will automatically filter and extract targeted X URLs.</p>
                 
-                <textarea id="bulk-input" placeholder="Paste your text here...
+                <textarea id="bulk-input" placeholder="Initialize data stream...
 Example:
-[8/13/2026 7:27 PM] Tajwan Tamim: https://x.com/Tajwan_Tamim/status/2087894224306057267
-[8/13/2026 7:27 PM] Master: https://x.com/Coinmaster100x/status/2087846098476167595"></textarea>
+[8/13/2026] Target: https://x.com/username/status/123456789"></textarea>
                 
                 <div class="action-row">
-                    <button id="extract-btn" class="btn-secondary">Extract Links</button>
-                    <button id="start-btn" class="btn-primary" disabled>Start Automator</button>
-                    <button id="stop-btn" class="btn-danger" style="display: none;">Stop</button>
+                    <button id="extract-btn" class="btn-secondary">Extract URLs</button>
+                    <button id="start-btn" class="btn-primary" disabled>Engage Protocol</button>
+                    <button id="stop-btn" class="btn-danger" style="display: none;">Abort Mission</button>
                 </div>
             </div>
 
-            <div class="status-section">
+            <div class="status-section glass-panel">
                 <div class="section-header">
-                    <h2>Processing Queue</h2>
-                    <span id="queue-status" class="status-text idle">Idle</span>
+                    <h2>Operation Queue</h2>
+                    <span id="queue-status" class="status-text idle">Standby</span>
                 </div>
                 
                 <div class="progress-container">
                     <div class="progress-bar" id="progress-bar"></div>
                 </div>
-                <p class="progress-text" id="progress-text">Ready to process</p>
+                <p class="progress-text" id="progress-text">Awaiting commands...</p>
                 
                 <div class="link-list" id="link-list">
-                    <div class="empty-state">No links extracted yet</div>
+                    <div class="empty-state">No targets acquired</div>
                 </div>
             </div>
         </div>
