@@ -1,16 +1,19 @@
 :root {
-    --primary: #0ea5e9;
-    --primary-hover: #0284c7;
-    --primary-glow: rgba(14, 165, 233, 0.4);
-    --accent: #6366f1;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-light: #eff6ff;
+    --accent: #4f46e5;
     --success: #10b981;
-    --success-glow: rgba(16, 185, 129, 0.3);
-    --danger: #f43f5e;
-    --bg-base: #030712;
-    --bg-panel: rgba(17, 24, 39, 0.7);
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --border: rgba(255, 255, 255, 0.1);
+    --success-bg: #d1fae5;
+    --danger: #ef4444;
+    --bg-base: #f8fafc;
+    --bg-panel: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-highlight: #cbd5e1;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,15 +26,6 @@ body {
     height: 100%;
     overflow: hidden;
     position: relative;
-}
-
-.glow-bg {
-    position: fixed;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), transparent 40%),
-                radial-gradient(circle at 100% 50%, rgba(14, 165, 233, 0.1), transparent 40%);
-    z-index: -1;
 }
 
 .app-container {
@@ -52,39 +46,26 @@ body {
     position: relative;
     width: 36px;
     height: 36px;
-}
-
-.logo-glow {
-    position: absolute;
-    inset: -4px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    filter: blur(8px);
-    opacity: 0.6;
     border-radius: 8px;
-    animation: pulse 3s infinite alternate;
-}
-
-@keyframes pulse {
-    0% { opacity: 0.3; }
-    100% { opacity: 0.7; }
+    box-shadow: var(--shadow-sm);
+    background: #fff;
+    padding: 2px;
+    border: 1px solid var(--border);
 }
 
 .logo-img {
-    position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 8px;
-    background: #fff;
-    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    object-fit: cover;
 }
 
 .app-title {
     font-size: 1.1rem;
     font-weight: 800;
-    letter-spacing: 0.5px;
-    background: linear-gradient(to right, #fff, #94a3b8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.2px;
+    color: var(--text-main);
+    text-transform: uppercase;
     line-height: 1.1;
 }
 
@@ -100,11 +81,10 @@ body {
 /* Cards */
 .card {
     background: var(--bg-panel);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px;
+    box-shadow: var(--shadow-sm);
 }
 
 .row-card {
@@ -132,13 +112,13 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #475569;
-    transition: all 0.3s;
+    background: #cbd5e1;
+    transition: all 0.3s ease;
 }
 
 .status-indicator.active {
     background: var(--success);
-    box-shadow: 0 0 8px var(--success-glow);
+    box-shadow: 0 0 0 2px var(--success-bg);
 }
 
 #status-text {
@@ -164,8 +144,8 @@ body {
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--border);
+    background-color: #cbd5e1;
+    border: 1px solid transparent;
     transition: .3s;
     border-radius: 22px;
 }
@@ -177,20 +157,18 @@ body {
     width: 16px;
     left: 2px;
     bottom: 2px;
-    background-color: #94a3b8;
+    background-color: white;
     transition: .3s;
     border-radius: 50%;
+    box-shadow: var(--shadow-sm);
 }
 
 input:checked + .slider {
-    background-color: rgba(16, 185, 129, 0.2);
-    border-color: var(--success);
+    background-color: var(--success);
 }
 
 input:checked + .slider:before {
     transform: translateX(18px);
-    background-color: var(--success);
-    box-shadow: 0 0 8px var(--success-glow);
 }
 
 /* Settings */
@@ -230,14 +208,14 @@ input:checked + .slider:before {
     font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-muted);
-    background: rgba(255,255,255,0.05);
+    background: var(--bg-base);
     border: 1px solid var(--border);
     border-radius: 6px;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .radio-label input:checked + .radio-text {
-    background: rgba(14, 165, 233, 0.15);
+    background: var(--primary-light);
     border-color: var(--primary);
     color: var(--primary);
 }
@@ -255,17 +233,19 @@ input[type="number"], input[type="password"] {
     width: 100%;
     padding: 6px 8px;
     border-radius: 6px;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-base);
     border: 1px solid var(--border);
     color: var(--text-main);
     font-family: 'Outfit', sans-serif;
     font-size: 0.75rem;
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s ease;
 }
 
 input[type="number"]:focus, input[type="password"]:focus {
     border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 2px var(--primary-light);
 }
 
 .input-row {
@@ -288,21 +268,20 @@ button {
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
     font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background: var(--primary);
     color: white;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
+    background: var(--primary-hover);
+    box-shadow: var(--shadow-md);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
 
 .footer-actions {
