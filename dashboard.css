@@ -78,9 +78,18 @@ body {
     font-size: 2rem;
     font-weight: 800;
     letter-spacing: -0.5px;
-    color: var(--text-main);
     text-transform: uppercase;
     line-height: 1.1;
+    background: linear-gradient(90deg, var(--text-main), var(--primary), var(--accent), var(--text-main));
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titleGradient 6s linear infinite;
+}
+
+@keyframes titleGradient {
+    0% { background-position: 100% 0; }
+    100% { background-position: -50% 0; }
 }
 
 .app-subtitle {
@@ -123,8 +132,8 @@ body {
 
 .dev-name {
     font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--text-main);
+    font-weight: 500;
+    color: var(--text-muted);
 }
 
 /* Main Content */
@@ -296,10 +305,17 @@ button:disabled {
 
 .progress-bar {
     height: 100%;
-    background: var(--primary);
+    background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
+    background-size: 200% 100%;
+    animation: gradientMove 2s linear infinite;
     width: 0%;
     transition: width 0.4s ease;
     border-radius: 10px;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
 }
 
 .progress-text {
