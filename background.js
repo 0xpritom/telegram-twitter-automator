@@ -52,9 +52,6 @@ function processNextBulkLink() {
 
     if (currentIndex >= bulkQueue.length) {
         isProcessing = false;
-        bulkQueue = [];
-        currentIndex = 0;
-        errorIndices = [];
         broadcastProgress('done');
         return;
     }
