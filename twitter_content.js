@@ -79,7 +79,13 @@ function simulateClick(element) {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const randomDelay = (min, max) => sleep(Math.floor(Math.random() * (max - min + 1)) + min);
 
+// Keep background script alive during long operations
+const pingInterval = setInterval(() => {
+    chrome.runtime.sendMessage({ action: 'ping' }).catch(() => {});
+}, 10000);
+
 async function finishProcess(success) {
+    clearInterval(pingInterval);
     chrome.runtime.sendMessage({ action: success ? 'twitter_done' : 'twitter_error' });
 }
 
@@ -101,22 +107,9 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
         }
         
         if (!tweet) {
-            let attempt = parseInt(sessionStorage.getItem('x_bot_attempt') || '1', 10);
-            if (attempt === 1) {
-                updateStatus("Tweet didn't load within 20s. Reloading page...");
-                sessionStorage.setItem('x_bot_attempt', '2');
-                await sleep(1000);
-                window.location.reload();
-                return; // Stop execution, script will run again on reload
-            } else {
-                updateStatus("Tweet didn't load even after refresh. Skipping this link...");
-                sessionStorage.removeItem('x_bot_attempt'); // Reset
-                await sleep(2000);
-                return finishProcess(false);
-            }
-        } else {
-            // Success, remove attempt counter just in case
-            sessionStorage.removeItem('x_bot_attempt');
+            updateStatus("Tweet didn't load within 20 seconds. Skipping this link...");
+            await sleep(2000);
+            return finishProcess(false);
         }
 
         const textElement = tweet.querySelector('div[data-testid="tweetText"]');
