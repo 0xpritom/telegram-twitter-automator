@@ -112,6 +112,10 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
             return finishProcess(false);
         }
 
+        // Wait a couple of seconds to allow Twitter's UI (like/unlike buttons) to fetch and render
+        updateStatus("Waiting for tweet UI state to settle...");
+        await randomDelay(2000, 3000);
+
         const textElement = tweet.querySelector('div[data-testid="tweetText"]');
         if (!textElement && (actionMode === 'comment' || actionMode === 'both')) {
             updateStatus("No text found in this tweet.", tweet);
@@ -180,10 +184,9 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
         }
         
         updateStatus(`Thinking of a reply using Grok AI...`, tweet);
-        
         let replyText = null;
         try {
-                    replyText = await new Promise((resolve, reject) => {
+            replyText = await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage({ action: 'generate', text: tweetText, lang: tweetLang, author: authorName }, (response) => {
                     if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
                     else if (response && response.error) reject(new Error(response.error));
