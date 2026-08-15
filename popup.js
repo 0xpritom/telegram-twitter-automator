@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('api-key');
+    const myUsernameInput = document.getElementById('my-username');
     const toggleBot = document.getElementById('toggle-bot');
     const timeLimitInput = document.getElementById('time-limit');
     const readMinInput = document.getElementById('read-min');
@@ -32,8 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load saved settings
-    chrome.storage.local.get(['apiKey', 'enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
+    chrome.storage.local.get(['apiKey', 'myUsername', 'enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
         if (result.apiKey) apiKeyInput.value = result.apiKey;
+        if (result.myUsername) myUsernameInput.value = result.myUsername;
         if (result.timeLimit !== undefined) timeLimitInput.value = result.timeLimit;
         if (result.readMin !== undefined) readMinInput.value = result.readMin;
         if (result.readMax !== undefined) readMaxInput.value = result.readMax;
@@ -49,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save settings
     saveBtn.addEventListener('click', () => {
         const apiKey = apiKeyInput.value.trim();
+        const myUsername = myUsernameInput.value.trim();
         const enabled = toggleBot.checked;
         const timeLimit = parseInt(timeLimitInput.value, 10) || 0;
         const readMin = parseInt(readMinInput.value, 10) || 3;
@@ -59,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clean up desktopEnabled since we no longer use it
         chrome.storage.local.remove(['desktopEnabled']);
         
-        chrome.storage.local.set({ apiKey, enabled, actionMode, timeLimit, readMin, readMax }, () => {
+        chrome.storage.local.set({ apiKey, myUsername, enabled, actionMode, timeLimit, readMin, readMax }, () => {
             messageEl.textContent = 'Settings saved successfully!';
             updateUI(enabled);
             

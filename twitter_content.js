@@ -89,7 +89,7 @@ async function finishProcess(success) {
     chrome.runtime.sendMessage({ action: success ? 'twitter_done' : 'twitter_error' });
 }
 
-async function startBot(actionMode, timeLimit, readMin, readMax) {
+async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
     createStatusUI();
     updateStatus("Starting up on X...");
     
@@ -158,6 +158,7 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
         
         let tweetId = null;
         let authorName = null;
+        let rawAuthorText = "";
         try {
             let match = window.location.href.match(/\/status\/(\d+)/);
             if (!match) match = window.location.href.match(/tweet_id=(\d+)/);
@@ -165,9 +166,16 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
 
             const userNameEl = tweet.querySelector('div[data-testid="User-Name"]');
             if (userNameEl) {
-                authorName = userNameEl.innerText.split('\n')[0].trim();
+                rawAuthorText = userNameEl.innerText || "";
+                authorName = rawAuthorText.split('\n')[0].trim();
             }
         } catch(e) {}
+        
+        if (myUsername && myUsername.trim() !== "" && rawAuthorText.toLowerCase().includes(myUsername.toLowerCase().trim())) {
+            updateStatus("This is my own post! Skipping to avoid self-engagement...", tweet);
+            await randomDelay(1500, 2500);
+            return finishProcess(true);
+        }
         
         if (tweetId && (actionMode === 'comment' || actionMode === 'both')) {
             const isReplied = await new Promise(resolve => {
@@ -291,15 +299,16 @@ async function startBot(actionMode, timeLimit, readMin, readMax) {
 
 // Start processing as soon as page loads
 window.addEventListener('load', () => {
-    chrome.storage.local.get(['enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (res) => {
+    chrome.storage.local.get(['enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax', 'myUsername'], (res) => {
         if (res.enabled) {
             const actionMode = res.actionMode || 'comment';
             const timeLimit = (res.timeLimit !== undefined) ? parseInt(res.timeLimit, 10) : 0;
             const readMin = (res.readMin !== undefined) ? parseInt(res.readMin, 10) : 3;
             const readMax = (res.readMax !== undefined) ? parseInt(res.readMax, 10) : 7;
+            const myUsername = res.myUsername || "";
             // Small delay to ensure X finishes rendering initial shell
             setTimeout(() => {
-                startBot(actionMode, timeLimit, readMin, readMax);
+                startBot(actionMode, timeLimit, readMin, readMax, myUsername);
             }, 2000);
         }
     });
