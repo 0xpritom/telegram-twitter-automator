@@ -116,8 +116,20 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
         updateStatus("Waiting for tweet UI state to settle...");
         await randomDelay(2000, 3000);
 
-        const textElement = tweet.querySelector('div[data-testid="tweetText"]');
-        if (!textElement && (actionMode === 'comment' || actionMode === 'both')) {
+        let textElement = tweet.querySelector('div[data-testid="tweetText"]');
+        let extractedText = "";
+        if (textElement) {
+            extractedText = textElement.innerText;
+        } else {
+            const heading = tweet.querySelector('h1, h2, [data-testid="article-title"]');
+            if (heading) {
+                extractedText = heading.innerText;
+            } else {
+                extractedText = tweet.innerText.substring(0, 500);
+            }
+        }
+
+        if (!extractedText.trim() && (actionMode === 'comment' || actionMode === 'both')) {
             updateStatus("No text found in this tweet.", tweet);
             await randomDelay(2000, 3000);
             return finishProcess(false);
@@ -127,7 +139,7 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
         let authorName = null;
         let rawAuthorText = "";
         try {
-            let match = window.location.href.match(/\/status\/(\d+)/);
+            let match = window.location.href.match(/\/(?:status|article)\/(\d+)/);
             if (!match) match = window.location.href.match(/tweet_id=(\d+)/);
             if (match) tweetId = match[1];
 
@@ -169,8 +181,8 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
             }
         }
         
-        const tweetText = textElement.innerText;
-        let tweetLang = textElement.getAttribute('lang') || 'unknown';
+        const tweetText = extractedText;
+        let tweetLang = (textElement ? textElement.getAttribute('lang') : null) || 'unknown';
         
         const translationMatch = tweet.innerText.match(/Translated from ([A-Za-z]+)/i);
         if (translationMatch && translationMatch[1]) {

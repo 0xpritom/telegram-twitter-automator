@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Extract links using Regex
     extractBtn.addEventListener('click', () => {
         const text = bulkInput.value;
-        // Match both x.com and twitter.com, capturing the full status URL
-        const regex = /(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com\/[a-zA-Z0-9_]+\/status\/\d+/g;
+        // Match both x.com and twitter.com, capturing both /status/ and /article/ URLs
+        const regex = /(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com\/[a-zA-Z0-9_]+\/(?:status|article)\/\d+/gi;
         
         const matches = text.match(regex) || [];
         
