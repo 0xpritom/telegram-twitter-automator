@@ -407,8 +407,13 @@ button:disabled {
 }
 
 .link-item.error {
-    border-color: #fecaca;
-    background: #fef2f2;
+    border-color: var(--danger);
+    background: var(--danger-bg);
+}
+
+.link-item.error a {
+    color: var(--danger);
+    font-weight: 600;
 }
 
 .item-status {
