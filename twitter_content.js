@@ -122,7 +122,28 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
             await randomDelay(2000, 3000);
             return finishProcess(false);
         }
+
+        let tweetId = null;
+        let authorName = null;
+        let rawAuthorText = "";
+        try {
+            let match = window.location.href.match(/\/status\/(\d+)/);
+            if (!match) match = window.location.href.match(/tweet_id=(\d+)/);
+            if (match) tweetId = match[1];
+
+            const userNameEl = tweet.querySelector('div[data-testid="User-Name"]');
+            if (userNameEl) {
+                rawAuthorText = userNameEl.innerText || "";
+                authorName = rawAuthorText.split('\n')[0].trim();
+            }
+        } catch(e) {}
         
+        if (myUsername && myUsername.trim() !== "" && rawAuthorText.toLowerCase().includes(myUsername.toLowerCase().trim())) {
+            updateStatus("This is my own post! Skipping to avoid self-engagement...", tweet);
+            await randomDelay(1500, 2500);
+            return finishProcess(true);
+        }
+
         const unlikeBtn = tweet.querySelector('[data-testid="unlike"]');
         if (unlikeBtn) {
             updateStatus("Tweet is already liked! Skipping entire process for extra safety...", tweet);
@@ -154,27 +175,6 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
         const translationMatch = tweet.innerText.match(/Translated from ([A-Za-z]+)/i);
         if (translationMatch && translationMatch[1]) {
             tweetLang = translationMatch[1];
-        }
-        
-        let tweetId = null;
-        let authorName = null;
-        let rawAuthorText = "";
-        try {
-            let match = window.location.href.match(/\/status\/(\d+)/);
-            if (!match) match = window.location.href.match(/tweet_id=(\d+)/);
-            if (match) tweetId = match[1];
-
-            const userNameEl = tweet.querySelector('div[data-testid="User-Name"]');
-            if (userNameEl) {
-                rawAuthorText = userNameEl.innerText || "";
-                authorName = rawAuthorText.split('\n')[0].trim();
-            }
-        } catch(e) {}
-        
-        if (myUsername && myUsername.trim() !== "" && rawAuthorText.toLowerCase().includes(myUsername.toLowerCase().trim())) {
-            updateStatus("This is my own post! Skipping to avoid self-engagement...", tweet);
-            await randomDelay(1500, 2500);
-            return finishProcess(true);
         }
         
         if (tweetId && (actionMode === 'comment' || actionMode === 'both')) {
