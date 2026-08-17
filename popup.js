@@ -32,15 +32,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const apiProviderSelect = document.getElementById('api-provider');
+    const aiModelInput = document.getElementById('ai-model');
+
+    // Update placeholders based on provider
+    apiProviderSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === 'groq') {
+            aiModelInput.placeholder = "llama-3.3-70b-versatile";
+            if (!aiModelInput.value) aiModelInput.value = "llama-3.3-70b-versatile";
+        } else if (val === 'gemini') {
+            aiModelInput.placeholder = "gemini-1.5-flash";
+            if (!aiModelInput.value || aiModelInput.value.includes('llama') || aiModelInput.value.includes('mixtral')) aiModelInput.value = "gemini-1.5-flash";
+        } else if (val === 'openrouter') {
+            aiModelInput.placeholder = "meta-llama/llama-3-8b-instruct:free";
+            if (!aiModelInput.value || aiModelInput.value.includes('gemini') || !aiModelInput.value.includes('/')) aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
+        }
+    });
+
     // Load saved settings
-    chrome.storage.local.get(['apiKey', 'myUsername', 'aiModel', 'enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
+    chrome.storage.local.get(['apiKey', 'apiProvider', 'myUsername', 'aiModel', 'enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
         if (result.apiKey) apiKeyInput.value = result.apiKey;
         if (result.myUsername) myUsernameInput.value = result.myUsername;
+        if (result.apiProvider) apiProviderSelect.value = result.apiProvider;
+        
         if (result.aiModel) {
-            document.getElementById('ai-model').value = result.aiModel;
+            aiModelInput.value = result.aiModel;
         } else {
-            document.getElementById('ai-model').value = "mixtral-8x7b-32768"; // fallback default
+            // Default model if none exists based on provider
+            const p = result.apiProvider || 'groq';
+            if (p === 'groq') aiModelInput.value = "llama-3.3-70b-versatile";
+            else if (p === 'gemini') aiModelInput.value = "gemini-1.5-flash";
+            else aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
         }
+        
         if (result.timeLimit !== undefined) timeLimitInput.value = result.timeLimit;
         if (result.readMin !== undefined) readMinInput.value = result.readMin;
         if (result.readMax !== undefined) readMaxInput.value = result.readMax;
@@ -57,7 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.addEventListener('click', () => {
         const apiKey = apiKeyInput.value.trim();
         const myUsername = myUsernameInput.value.trim();
-        const aiModel = document.getElementById('ai-model').value.trim();
+        const apiProvider = apiProviderSelect.value;
+        const aiModel = aiModelInput.value.trim();
         const enabled = toggleBot.checked;
         const timeLimit = parseInt(timeLimitInput.value, 10) || 0;
         const readMin = parseInt(readMinInput.value, 10) || 3;
@@ -68,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clean up desktopEnabled since we no longer use it
         chrome.storage.local.remove(['desktopEnabled']);
         
-        chrome.storage.local.set({ apiKey, myUsername, aiModel, enabled, actionMode, timeLimit, readMin, readMax }, () => {
+        chrome.storage.local.set({ apiKey, apiProvider, myUsername, aiModel, enabled, actionMode, timeLimit, readMin, readMax }, () => {
             messageEl.textContent = 'Settings saved successfully!';
             updateUI(enabled);
             

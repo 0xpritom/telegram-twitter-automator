@@ -130,9 +130,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function generateComment(text, langCode, authorHandle) {
-    const data = await chrome.storage.local.get(['apiKey', 'aiModel']);
+    const data = await chrome.storage.local.get(['apiKey', 'aiModel', 'apiProvider']);
     const apiKey = data.apiKey;
-    const modelName = data.aiModel || "mixtral-8x7b-32768";
+    const provider = data.apiProvider || "groq";
+    
+    let modelName = data.aiModel;
+    if (!modelName) {
+        if (provider === 'gemini') modelName = 'gemini-1.5-flash';
+        else if (provider === 'openrouter') modelName = 'meta-llama/llama-3-8b-instruct:free';
+        else modelName = 'llama-3.3-70b-versatile';
+    }
     
     if (!apiKey) {
         throw new Error("No API key set in extension popup.");
@@ -201,15 +208,24 @@ IMPORTANT: Output ONLY the raw comment text. DO NOT wrap your comment in quotes.
 
 Post: "${text}"`;
     
-    const url = "https://api.groq.com/openai/v1/chat/completions";
+    let url = "https://api.groq.com/openai/v1/chat/completions";
+    let headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+    };
+    
+    if (provider === 'gemini') {
+        url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    } else if (provider === 'openrouter') {
+        url = "https://openrouter.ai/api/v1/chat/completions";
+        headers['HTTP-Referer'] = "https://github.com/0xpritom/telegram-twitter-automator"; // Required by OpenRouter
+        headers['X-Title'] = "X-CORE DASHBOARD";
+    }
     
     try {
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             body: JSON.stringify({
                 model: modelName, 
                 messages: [{ role: "user", content: prompt }],

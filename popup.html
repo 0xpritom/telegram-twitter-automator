@@ -79,12 +79,21 @@
             </div>
 
             <div class="form-group" style="margin-top: 8px;">
-                <label for="api-key">Groq API Key</label>
-                <input type="password" id="api-key" placeholder="gsk_...">
+                <label for="api-provider">API Provider</label>
+                <select id="api-provider" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                    <option value="groq">Groq</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="openrouter">OpenRouter</option>
+                </select>
             </div>
 
             <div class="form-group" style="margin-top: 8px;">
-                <label for="ai-model">Groq AI Model</label>
+                <label for="api-key">API Key</label>
+                <input type="password" id="api-key" placeholder="Enter API Key here...">
+            </div>
+
+            <div class="form-group" style="margin-top: 8px;">
+                <label for="ai-model">AI Model</label>
                 <input type="text" id="ai-model" placeholder="mixtral-8x7b-32768" value="mixtral-8x7b-32768">
             </div>
         </div>
