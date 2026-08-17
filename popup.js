@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.aiModel) {
             aiModelInput.value = result.aiModel;
         } else {
-            aiModelInput.value = "mixtral-8x7b-32768";
+            aiModelInput.value = "openai/gpt-oss-20b";
         }
         
         if (result.timeLimit !== undefined) timeLimitInput.value = result.timeLimit;
