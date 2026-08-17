@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
             aiModelInput.placeholder = "llama-3.3-70b-versatile";
             aiModelInput.value = "llama-3.3-70b-versatile";
         } else if (val === 'gemini') {
-            aiModelInput.placeholder = "gemini-2.5-flash";
-            aiModelInput.value = "gemini-2.5-flash";
+            aiModelInput.placeholder = "gemini-3.6-flash";
+            aiModelInput.value = "gemini-3.6-flash";
         } else if (val === 'openrouter') {
             aiModelInput.placeholder = "meta-llama/llama-3-8b-instruct:free";
             aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Default model if none exists based on provider
             const p = result.apiProvider || 'groq';
             if (p === 'groq') aiModelInput.value = "llama-3.3-70b-versatile";
-            else if (p === 'gemini') aiModelInput.value = "gemini-2.5-flash";
+            else if (p === 'gemini') aiModelInput.value = "gemini-3.6-flash";
             else aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
         }
         

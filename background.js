@@ -136,7 +136,7 @@ async function generateComment(text, langCode, authorHandle) {
     
     let modelName = data.aiModel;
     if (!modelName) {
-        if (provider === 'gemini') modelName = 'gemini-2.5-flash';
+        if (provider === 'gemini') modelName = 'gemini-3.6-flash';
         else if (provider === 'openrouter') modelName = 'meta-llama/llama-3-8b-instruct:free';
         else modelName = 'llama-3.3-70b-versatile';
     }
