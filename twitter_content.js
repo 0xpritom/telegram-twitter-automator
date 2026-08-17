@@ -222,6 +222,9 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
                             updateStatus(`Clicking reply button...`, tweet);
                             simulateClick(replyBtn);
                             
+                            // CRITICAL: Wait for Twitter's modal fade-in animation to finish!
+                            await randomDelay(800, 1200);
+                            
                             let textBox = null;
                             for (let i = 0; i < 20; i++) { // Poll every 500ms for up to 10 seconds
                                 textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
@@ -231,23 +234,17 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
                             
                             if (textBox) {
                                 updateStatus(`Pasting reply...`, tweet);
-                                simulateClick(textBox);
                                 textBox.focus();
                                 await randomDelay(200, 400);
                                 
-                                const pasted = document.execCommand('insertText', false, replyText);
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.setData('text/plain', replyText);
                                 
-                                if (!pasted) {
-                                    const dataTransfer = new DataTransfer();
-                                    dataTransfer.setData('text/plain', replyText);
-                                    textBox.dispatchEvent(new ClipboardEvent('paste', {
-                                        clipboardData: dataTransfer,
-                                        bubbles: true,
-                                        cancelable: true
-                                    }));
-                                }
-                                
-                                textBox.dispatchEvent(new Event('input', { bubbles: true }));
+                                textBox.dispatchEvent(new ClipboardEvent('paste', {
+                                    clipboardData: dataTransfer,
+                                    bubbles: true,
+                                    cancelable: true
+                                }));
                                 
                                 await randomDelay(400, 800);
                                 
