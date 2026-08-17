@@ -87,6 +87,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.action === 'resume_bulk') {
+        isProcessing = true;
+        processNextBulkLink();
+        sendResponse({ success: true });
+        return true;
+    }
+
+    if (request.action === 'retry_failed_bulk') {
+        if (errorIndices.length === 0) {
+            sendResponse({ success: false });
+            return true;
+        }
+        let failedLinks = errorIndices.map(idx => bulkQueue[idx]);
+        bulkQueue = failedLinks;
+        currentIndex = 0;
+        errorIndices = [];
+        isProcessing = true;
+        processNextBulkLink();
+        sendResponse({ success: true });
+        return true;
+    }
+
     if (request.action === 'get_bulk_status') {
         sendResponse({
             isRunning: isProcessing,

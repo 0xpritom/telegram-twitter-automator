@@ -156,31 +156,6 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
             return finishProcess(true);
         }
 
-        const unlikeBtn = tweet.querySelector('[data-testid="unlike"]');
-        if (unlikeBtn) {
-            updateStatus("Tweet is already liked! Skipping entire process for extra safety...", tweet);
-            await randomDelay(1500, 2500);
-            return finishProcess(true);
-        }
-        
-        if (actionMode === 'like' || actionMode === 'both') {
-            updateStatus("Liking the tweet...", tweet);
-            const likeBtn = tweet.querySelector('[data-testid="like"]');
-            if (likeBtn) {
-                simulateClick(likeBtn);
-                await randomDelay(500, 800);
-            } else {
-                updateStatus("Like button not found.", tweet);
-                await randomDelay(300, 500);
-            }
-            
-            if (actionMode === 'like') {
-                updateStatus("Like process finished! Moving back to Telegram...", tweet);
-                await randomDelay(1000, 1500);
-                return finishProcess(true);
-            }
-        }
-        
         const tweetText = extractedText;
         let tweetLang = (textElement ? textElement.getAttribute('lang') : null) || 'unknown';
         
@@ -188,127 +163,148 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
         if (translationMatch && translationMatch[1]) {
             tweetLang = translationMatch[1];
         }
-        
-        if (tweetId && (actionMode === 'comment' || actionMode === 'both')) {
-            const isReplied = await new Promise(resolve => {
-                chrome.storage.local.get(['repliedTweetsHistory'], (res) => {
-                    resolve((res.repliedTweetsHistory || []).includes(tweetId));
-                });
-            });
-            
-            if (isReplied) {
-                updateStatus("Already replied to this tweet previously! Skipping comment...", tweet);
-                await randomDelay(1000, 1500);
-                return finishProcess(true);
-            }
-        }
-        
+
+        let didComment = false;
+
+        // 1. Comment Action
         if (actionMode === 'comment' || actionMode === 'both') {
-            updateStatus(`Reading post... (Waiting ${readMin}s to ${readMax}s)`, tweet);
-            await randomDelay(readMin * 1000, readMax * 1000);
-        }
-        
-        updateStatus(`Thinking of a reply using AI...`, tweet);
-        let replyText = null;
-        try {
-            replyText = await new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({ action: 'generate', text: tweetText, lang: tweetLang, author: authorName }, (response) => {
-                    if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-                    else if (response && response.error) reject(new Error(response.error));
-                    else resolve(response.reply);
+            if (tweetId) {
+                const isReplied = await new Promise(resolve => {
+                    chrome.storage.local.get(['repliedTweetsHistory'], (res) => {
+                        resolve((res.repliedTweetsHistory || []).includes(tweetId));
+                    });
                 });
-            });
-        } catch (e) {
-            updateStatus(`API Error: ${e.message}`, tweet);
-            await randomDelay(4000, 5000);
-            return finishProcess(false);
-        }
-
-        if (replyText === "SKIP_COMMENT") {
-            updateStatus("Decided to skip commenting to mimic natural behavior.", tweet);
-            await randomDelay(1000, 1500);
-            return finishProcess(true);
-        }
-
-        if (!replyText || replyText.trim() === "") {
-            updateStatus("AI generated an empty reply.", tweet);
-            await randomDelay(1000, 1500);
-            return finishProcess(false);
-        }
-        
-        replyText = replyText.trim();
-        if (replyText.length > 0) {
-            replyText = replyText.charAt(0).toUpperCase() + replyText.slice(1);
-        }
-        if (replyText.endsWith('.')) {
-            replyText = replyText.slice(0, -1);
-        }
-
-        updateStatus(`Generated Reply:\n"${replyText}"\n\nPreparing to click...`, tweet);
-        await randomDelay(300, 600);
-
-        const replyBtn = tweet.querySelector('[data-testid="reply"]');
-        if (replyBtn) {
-            updateStatus(`Clicking reply button...`, tweet);
-            simulateClick(replyBtn);
-            
-            let textBox = null;
-            for (let i = 0; i < 20; i++) { // Poll every 500ms for up to 10 seconds
-                textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
-                if (textBox) break;
-                await sleep(500);
-            }
-            
-            if (textBox) {
-                updateStatus(`Pasting reply...`, tweet);
-                textBox.focus();
-                await randomDelay(200, 400);
                 
-                const dataTransfer = new DataTransfer();
-                dataTransfer.setData('text/plain', replyText);
-                
-                textBox.dispatchEvent(new ClipboardEvent('paste', {
-                    clipboardData: dataTransfer,
-                    bubbles: true,
-                    cancelable: true
-                }));
-                
-                await randomDelay(400, 800);
-                
-                const submitBtn = document.querySelector('[data-testid="tweetButton"]');
-                if (submitBtn && !submitBtn.disabled) {
-                    updateStatus(`Clicking send...`, tweet);
-                    simulateClick(submitBtn);
-                    
-                    if (tweetId) {
-                        chrome.storage.local.get(['repliedTweetsHistory'], (res) => {
-                            let history = res.repliedTweetsHistory || [];
-                            if (!history.includes(tweetId)) {
-                                history.push(tweetId);
-                                if (history.length > 1000) history = history.slice(-1000);
-                                chrome.storage.local.set({ repliedTweetsHistory: history });
-                            }
-                        });
-                    }
-                    
-                    updateStatus(`Reply process finished! Moving back to Telegram...`, tweet);
+                if (isReplied) {
+                    updateStatus("Already replied to this tweet previously! Skipping comment...", tweet);
                     await randomDelay(1000, 1500);
-                    return finishProcess(true);
                 } else {
-                    updateStatus(`Error: Send button not found or disabled.`, tweet);
-                    await randomDelay(2000, 3000);
-                    return finishProcess(false);
+                    updateStatus(`Reading post... (Waiting ${readMin}s to ${readMax}s)`, tweet);
+                    await randomDelay(readMin * 1000, readMax * 1000);
+                    
+                    updateStatus(`Thinking of a reply using AI...`, tweet);
+                    let replyText = null;
+                    try {
+                        replyText = await new Promise((resolve, reject) => {
+                            chrome.runtime.sendMessage({ action: 'generate', text: tweetText, lang: tweetLang, author: authorName }, (response) => {
+                                if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+                                else if (response && response.error) reject(new Error(response.error));
+                                else resolve(response.reply);
+                            });
+                        });
+                    } catch (e) {
+                        updateStatus(`API Error: ${e.message}`, tweet);
+                        await randomDelay(4000, 5000);
+                        return finishProcess(false);
+                    }
+
+                    if (replyText === "SKIP_COMMENT") {
+                        updateStatus("Decided to skip commenting to mimic natural behavior.", tweet);
+                        await randomDelay(1000, 1500);
+                    } else if (!replyText || replyText.trim() === "") {
+                        updateStatus("AI generated an empty reply.", tweet);
+                        await randomDelay(1000, 1500);
+                        return finishProcess(false);
+                    } else {
+                        replyText = replyText.trim();
+                        if (replyText.length > 0) {
+                            replyText = replyText.charAt(0).toUpperCase() + replyText.slice(1);
+                        }
+                        if (replyText.endsWith('.')) {
+                            replyText = replyText.slice(0, -1);
+                        }
+
+                        updateStatus(`Generated Reply:\n"${replyText}"\n\nPreparing to click...`, tweet);
+                        await randomDelay(300, 600);
+
+                        const replyBtn = tweet.querySelector('[data-testid="reply"]');
+                        if (replyBtn) {
+                            updateStatus(`Clicking reply button...`, tweet);
+                            simulateClick(replyBtn);
+                            
+                            let textBox = null;
+                            for (let i = 0; i < 20; i++) { // Poll every 500ms for up to 10 seconds
+                                textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
+                                if (textBox) break;
+                                await sleep(500);
+                            }
+                            
+                            if (textBox) {
+                                updateStatus(`Pasting reply...`, tweet);
+                                textBox.focus();
+                                await randomDelay(200, 400);
+                                
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.setData('text/plain', replyText);
+                                
+                                textBox.dispatchEvent(new ClipboardEvent('paste', {
+                                    clipboardData: dataTransfer,
+                                    bubbles: true,
+                                    cancelable: true
+                                }));
+                                
+                                await randomDelay(400, 800);
+                                
+                                const submitBtn = document.querySelector('[data-testid="tweetButton"]');
+                                if (submitBtn && !submitBtn.disabled) {
+                                    updateStatus(`Clicking send...`, tweet);
+                                    simulateClick(submitBtn);
+                                    didComment = true;
+                                    
+                                    if (tweetId) {
+                                        chrome.storage.local.get(['repliedTweetsHistory'], (res) => {
+                                            let history = res.repliedTweetsHistory || [];
+                                            if (!history.includes(tweetId)) {
+                                                history.push(tweetId);
+                                                if (history.length > 1000) history = history.slice(-1000);
+                                                chrome.storage.local.set({ repliedTweetsHistory: history });
+                                            }
+                                        });
+                                    }
+                                    updateStatus(`Reply posted successfully!`, tweet);
+                                    await randomDelay(2000, 3000); // Wait for tweet modal to disappear
+                                } else {
+                                    updateStatus(`Error: Send button not found or disabled.`, tweet);
+                                    await randomDelay(2000, 3000);
+                                    return finishProcess(false);
+                                }
+                            } else {
+                                updateStatus(`Error: Could not find text box in modal!`, tweet);
+                                await randomDelay(2000, 3000);
+                                return finishProcess(false);
+                            }
+                        } else {
+                            updateStatus(`Error: Could not find reply button on tweet!`, tweet);
+                            await randomDelay(2000, 3000);
+                            return finishProcess(false);
+                        }
+                    }
                 }
-            } else {
-                updateStatus(`Error: Could not find text box in modal!`, tweet);
-                await randomDelay(2000, 3000);
-                return finishProcess(false);
             }
-        } else {
-            updateStatus(`Error: Could not find reply button on tweet!`, tweet);
-            await randomDelay(2000, 3000);
-            return finishProcess(false);
         }
+
+        // 2. Like Action (Only runs after comment)
+        if (actionMode === 'like' || actionMode === 'both') {
+            const unlikeBtn = tweet.querySelector('[data-testid="unlike"]');
+            if (unlikeBtn) {
+                updateStatus("Tweet is already liked! Skipping like...", tweet);
+                await randomDelay(1000, 1500);
+            } else {
+                updateStatus("Liking the tweet...", tweet);
+                const likeBtn = tweet.querySelector('[data-testid="like"]');
+                if (likeBtn) {
+                    simulateClick(likeBtn);
+                    await randomDelay(500, 800);
+                } else {
+                    updateStatus("Like button not found.", tweet);
+                    await randomDelay(300, 500);
+                }
+            }
+        }
+
+        updateStatus(`Process finished! Moving back to Telegram...`, tweet);
+        await randomDelay(1000, 1500);
+        return finishProcess(true);
         
     } catch (error) {
         updateStatus(`Fatal Error: ${error.message}`);

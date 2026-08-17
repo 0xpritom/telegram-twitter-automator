@@ -49,10 +49,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const resumeBtn = document.getElementById('resume-btn');
+    const retryBtn = document.getElementById('retry-btn');
+
     startBtn.addEventListener('click', () => {
         if (extractedLinks.length === 0) return;
         
         startBtn.style.display = 'none';
+        resumeBtn.style.display = 'none';
+        retryBtn.style.display = 'none';
         stopBtn.style.display = 'block';
         bulkInput.disabled = true;
         extractBtn.disabled = true;
@@ -66,6 +71,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    resumeBtn.addEventListener('click', () => {
+        startBtn.style.display = 'none';
+        resumeBtn.style.display = 'none';
+        retryBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        bulkInput.disabled = true;
+        extractBtn.disabled = true;
+        
+        queueStatus.textContent = 'Running';
+        queueStatus.className = 'status-text running';
+        
+        chrome.runtime.sendMessage({ action: 'resume_bulk' });
+    });
+
+    retryBtn.addEventListener('click', () => {
+        startBtn.style.display = 'none';
+        resumeBtn.style.display = 'none';
+        retryBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        bulkInput.disabled = true;
+        extractBtn.disabled = true;
+        
+        queueStatus.textContent = 'Running';
+        queueStatus.className = 'status-text running';
+        
+        chrome.runtime.sendMessage({ action: 'retry_failed_bulk' });
+    });
+
     stopBtn.addEventListener('click', () => {
         chrome.runtime.sendMessage({ action: 'stop_bulk' });
     });
@@ -73,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for progress updates from background.js
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'bulk_progress') {
-            const { currentIndex, total, status } = request;
+            const { currentIndex, total, status, errorIndices } = request;
             
             // Update progress bar
             const percent = total > 0 ? (currentIndex / total) * 100 : 0;
@@ -81,11 +114,11 @@ document.addEventListener('DOMContentLoaded', () => {
             progressText.textContent = `Processing ${currentIndex} of ${total}`;
             
             // Update link items
-            let errorCount = request.errorIndices ? request.errorIndices.length : 0;
+            let errorCount = errorIndices ? errorIndices.length : 0;
             document.querySelectorAll('.link-item').forEach((item, idx) => {
                 item.classList.remove('active', 'done', 'error');
                 
-                if (request.errorIndices && request.errorIndices.includes(idx)) {
+                if (errorIndices && errorIndices.includes(idx)) {
                     item.classList.add('error');
                 } else if (idx < currentIndex) {
                     item.classList.add('done');
@@ -102,12 +135,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 extractBtn.disabled = false;
                 
                 if (status === 'done') {
-                    queueStatus.textContent = 'Completed';
-                    queueStatus.className = 'status-text done';
+                    resumeBtn.style.display = 'none';
+                    if (errorCount > 0) {
+                        retryBtn.style.display = 'block';
+                        startBtn.style.display = 'none';
+                        queueStatus.textContent = 'Completed with Errors';
+                        queueStatus.className = 'status-text error';
+                    } else {
+                        retryBtn.style.display = 'none';
+                        queueStatus.textContent = 'Completed';
+                        queueStatus.className = 'status-text done';
+                    }
                     progressText.textContent = `Finished ${total} links. ${errorCount} failed.`;
                     progressBar.style.width = '100%';
-                    progressBar.style.background = '#10b981';
+                    progressBar.style.background = errorCount > 0 ? '#ef4444' : '#10b981';
                 } else {
+                    startBtn.style.display = 'none';
+                    resumeBtn.style.display = 'block';
+                    retryBtn.style.display = 'none';
                     queueStatus.textContent = 'Stopped';
                     queueStatus.className = 'status-text idle';
                     progressText.textContent = `Stopped at ${currentIndex} of ${total}. Failed: ${errorCount}`;
@@ -118,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Check if background is already running a job on load
     chrome.runtime.sendMessage({ action: 'get_bulk_status' }, (response) => {
-        if (response && response.isRunning) {
+        if (response && response.links && response.links.length > 0) {
             extractedLinks = response.links;
             linkCountBadge.textContent = `${extractedLinks.length} Links Loaded`;
             
@@ -134,20 +179,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 linkList.appendChild(item);
             });
             
-            startBtn.style.display = 'none';
-            stopBtn.style.display = 'block';
-            bulkInput.disabled = true;
-            extractBtn.disabled = true;
-            queueStatus.textContent = 'Running';
-            queueStatus.className = 'status-text running';
-            
-            // Simulate a progress event to set the correct state
-            chrome.runtime.onMessage.dispatch({
-                action: 'bulk_progress',
-                currentIndex: response.currentIndex,
-                total: response.total,
-                status: 'running'
-            });
+            if (response.isRunning) {
+                startBtn.style.display = 'none';
+                resumeBtn.style.display = 'none';
+                retryBtn.style.display = 'none';
+                stopBtn.style.display = 'block';
+                bulkInput.disabled = true;
+                extractBtn.disabled = true;
+                queueStatus.textContent = 'Running';
+                queueStatus.className = 'status-text running';
+                
+                chrome.runtime.onMessage.dispatch({
+                    action: 'bulk_progress',
+                    currentIndex: response.currentIndex,
+                    total: response.total,
+                    status: 'running',
+                    errorIndices: response.errorIndices || []
+                });
+            } else {
+                // It was stopped or done. We dispatch an event to let the listener setup UI.
+                chrome.runtime.onMessage.dispatch({
+                    action: 'bulk_progress',
+                    currentIndex: response.currentIndex,
+                    total: response.total,
+                    status: response.currentIndex >= response.total ? 'done' : 'stopped',
+                    errorIndices: response.errorIndices || []
+                });
+            }
         }
     });
 });
