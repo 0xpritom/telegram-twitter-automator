@@ -235,10 +235,26 @@ Post: "${text}"`;
 
         const result = await response.json();
         
-        if (result.error) {
-            throw new Error(result.error.message);
+        if (!response.ok) {
+            // Handle cases where the API returns an array of errors
+            if (Array.isArray(result) && result[0] && result[0].error) {
+                throw new Error(result[0].error.message || "Unknown API Error");
+            }
+            if (result.error && result.error.message) {
+                throw new Error(result.error.message);
+            }
+            throw new Error(`API Error: ${response.status} ${response.statusText}`);
         }
         
+        if (result.error) {
+            throw new Error(result.error.message || JSON.stringify(result.error));
+        }
+        
+        if (!result.choices || !result.choices[0]) {
+            console.error("Unexpected API Response:", result);
+            throw new Error("Invalid API response structure. Check your API Key and Model Name.");
+        }
+
         let comment = result.choices[0].message.content.trim();
         
         comment = comment.replace(/^(Comment|Reply|Response):\s*/i, '');
