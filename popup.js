@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.aiModel) {
             aiModelInput.value = result.aiModel;
         } else {
-            aiModelInput.value = "llama3-8b-8192";
+            aiModelInput.value = "mixtral-8x7b-32768";
         }
         
         if (result.timeLimit !== undefined) timeLimitInput.value = result.timeLimit;

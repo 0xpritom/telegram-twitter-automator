@@ -134,7 +134,7 @@ async function generateComment(text, langCode, authorHandle) {
     const apiKey = data.apiKey;
     const provider = "groq";
     
-    let modelName = data.aiModel || 'llama3-8b-8192';
+    let modelName = data.aiModel || 'mixtral-8x7b-32768';
     
     if (!apiKey) {
         throw new Error("No API key set in extension popup.");
