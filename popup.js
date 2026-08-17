@@ -35,18 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiProviderSelect = document.getElementById('api-provider');
     const aiModelInput = document.getElementById('ai-model');
 
-    // Update placeholders based on provider
+    // Update placeholders and values based on provider
     apiProviderSelect.addEventListener('change', (e) => {
         const val = e.target.value;
         if (val === 'groq') {
             aiModelInput.placeholder = "llama-3.3-70b-versatile";
-            if (!aiModelInput.value) aiModelInput.value = "llama-3.3-70b-versatile";
+            aiModelInput.value = "llama-3.3-70b-versatile";
         } else if (val === 'gemini') {
             aiModelInput.placeholder = "gemini-1.5-flash";
-            if (!aiModelInput.value || aiModelInput.value.includes('llama') || aiModelInput.value.includes('mixtral')) aiModelInput.value = "gemini-1.5-flash";
+            aiModelInput.value = "gemini-1.5-flash";
         } else if (val === 'openrouter') {
             aiModelInput.placeholder = "meta-llama/llama-3-8b-instruct:free";
-            if (!aiModelInput.value || aiModelInput.value.includes('gemini') || !aiModelInput.value.includes('/')) aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
+            aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
         }
     });
 
