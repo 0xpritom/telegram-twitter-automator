@@ -32,38 +32,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const apiProviderSelect = document.getElementById('api-provider');
     const aiModelInput = document.getElementById('ai-model');
 
-    // Update placeholders and values based on provider
-    apiProviderSelect.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val === 'groq') {
-            aiModelInput.placeholder = "llama-3.3-70b-versatile";
-            aiModelInput.value = "llama-3.3-70b-versatile";
-        } else if (val === 'gemini') {
-            aiModelInput.placeholder = "gemini-3.6-flash";
-            aiModelInput.value = "gemini-3.6-flash";
-        } else if (val === 'openrouter') {
-            aiModelInput.placeholder = "meta-llama/llama-3-8b-instruct:free";
-            aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
-        }
-    });
-
     // Load saved settings
-    chrome.storage.local.get(['apiKey', 'apiProvider', 'myUsername', 'aiModel', 'enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
+    chrome.storage.local.get(['apiKey', 'myUsername', 'aiModel', 'enabled', 'actionMode', 'timeLimit', 'readMin', 'readMax'], (result) => {
         if (result.apiKey) apiKeyInput.value = result.apiKey;
         if (result.myUsername) myUsernameInput.value = result.myUsername;
-        if (result.apiProvider) apiProviderSelect.value = result.apiProvider;
         
         if (result.aiModel) {
             aiModelInput.value = result.aiModel;
         } else {
-            // Default model if none exists based on provider
-            const p = result.apiProvider || 'groq';
-            if (p === 'groq') aiModelInput.value = "llama-3.3-70b-versatile";
-            else if (p === 'gemini') aiModelInput.value = "gemini-3.6-flash";
-            else aiModelInput.value = "meta-llama/llama-3-8b-instruct:free";
+            aiModelInput.value = "llama-3.3-70b-versatile";
         }
         
         if (result.timeLimit !== undefined) timeLimitInput.value = result.timeLimit;
@@ -82,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.addEventListener('click', () => {
         const apiKey = apiKeyInput.value.trim();
         const myUsername = myUsernameInput.value.trim();
-        const apiProvider = apiProviderSelect.value;
+        const apiProvider = 'groq';
         const aiModel = aiModelInput.value.trim();
         const enabled = toggleBot.checked;
         const timeLimit = parseInt(timeLimitInput.value, 10) || 0;

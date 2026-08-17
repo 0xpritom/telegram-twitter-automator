@@ -130,16 +130,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function generateComment(text, langCode, authorHandle) {
-    const data = await chrome.storage.local.get(['apiKey', 'aiModel', 'apiProvider']);
+    const data = await chrome.storage.local.get(['apiKey', 'aiModel']);
     const apiKey = data.apiKey;
-    const provider = data.apiProvider || "groq";
+    const provider = "groq";
     
-    let modelName = data.aiModel;
-    if (!modelName) {
-        if (provider === 'gemini') modelName = 'gemini-3.6-flash';
-        else if (provider === 'openrouter') modelName = 'meta-llama/llama-3-8b-instruct:free';
-        else modelName = 'llama-3.3-70b-versatile';
-    }
+    let modelName = data.aiModel || 'llama-3.3-70b-versatile';
     
     if (!apiKey) {
         throw new Error("No API key set in extension popup.");
@@ -213,14 +208,6 @@ Post: "${text}"`;
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
     };
-    
-    if (provider === 'gemini') {
-        url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-    } else if (provider === 'openrouter') {
-        url = "https://openrouter.ai/api/v1/chat/completions";
-        headers['HTTP-Referer'] = "https://github.com/0xpritom/telegram-twitter-automator"; // Required by OpenRouter
-        headers['X-Title'] = "X-CORE DASHBOARD";
-    }
     
     try {
         const response = await fetch(url, {
