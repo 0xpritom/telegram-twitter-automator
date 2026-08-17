@@ -203,6 +203,11 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
             }
         }
         
+        if (actionMode === 'comment' || actionMode === 'both') {
+            updateStatus(`Reading post... (Waiting ${readMin}s to ${readMax}s)`, tweet);
+            await randomDelay(readMin * 1000, readMax * 1000);
+        }
+        
         updateStatus(`Thinking of a reply using AI...`, tweet);
         let replyText = null;
         try {
@@ -247,9 +252,13 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
             updateStatus(`Clicking reply button...`, tweet);
             simulateClick(replyBtn);
             
-            await randomDelay(600, 1000); 
+            let textBox = null;
+            for (let i = 0; i < 20; i++) { // Poll every 500ms for up to 10 seconds
+                textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
+                if (textBox) break;
+                await sleep(500);
+            }
             
-            const textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
             if (textBox) {
                 updateStatus(`Pasting reply...`, tweet);
                 textBox.focus();
