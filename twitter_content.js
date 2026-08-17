@@ -168,15 +168,15 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
             const likeBtn = tweet.querySelector('[data-testid="like"]');
             if (likeBtn) {
                 simulateClick(likeBtn);
-                await randomDelay(1500, 2500);
+                await randomDelay(500, 800);
             } else {
                 updateStatus("Like button not found.", tweet);
-                await randomDelay(1000, 1500);
+                await randomDelay(300, 500);
             }
             
             if (actionMode === 'like') {
                 updateStatus("Like process finished! Moving back to Telegram...", tweet);
-                await randomDelay(2000, 3000);
+                await randomDelay(1000, 1500);
                 return finishProcess(true);
             }
         }
@@ -198,12 +198,12 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
             
             if (isReplied) {
                 updateStatus("Already replied to this tweet previously! Skipping comment...", tweet);
-                await randomDelay(1500, 2500);
+                await randomDelay(1000, 1500);
                 return finishProcess(true);
             }
         }
         
-        updateStatus(`Thinking of a reply using Grok AI...`, tweet);
+        updateStatus(`Thinking of a reply using AI...`, tweet);
         let replyText = null;
         try {
             replyText = await new Promise((resolve, reject) => {
@@ -221,13 +221,13 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
 
         if (replyText === "SKIP_COMMENT") {
             updateStatus("Decided to skip commenting to mimic natural behavior.", tweet);
-            await randomDelay(1500, 2000);
+            await randomDelay(1000, 1500);
             return finishProcess(true);
         }
 
         if (!replyText || replyText.trim() === "") {
             updateStatus("AI generated an empty reply.", tweet);
-            await randomDelay(2000, 2000);
+            await randomDelay(1000, 1500);
             return finishProcess(false);
         }
         
@@ -240,20 +240,20 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
         }
 
         updateStatus(`Generated Reply:\n"${replyText}"\n\nPreparing to click...`, tweet);
-        await randomDelay(1000, 1500);
+        await randomDelay(300, 600);
 
         const replyBtn = tweet.querySelector('[data-testid="reply"]');
         if (replyBtn) {
             updateStatus(`Clicking reply button...`, tweet);
             simulateClick(replyBtn);
             
-            await randomDelay(1500, 2000); 
+            await randomDelay(600, 1000); 
             
             const textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
             if (textBox) {
                 updateStatus(`Pasting reply...`, tweet);
                 textBox.focus();
-                await randomDelay(500, 1000);
+                await randomDelay(200, 400);
                 
                 const dataTransfer = new DataTransfer();
                 dataTransfer.setData('text/plain', replyText);
@@ -264,7 +264,7 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
                     cancelable: true
                 }));
                 
-                await randomDelay(1000, 1500);
+                await randomDelay(400, 800);
                 
                 const submitBtn = document.querySelector('[data-testid="tweetButton"]');
                 if (submitBtn && !submitBtn.disabled) {
@@ -283,21 +283,21 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
                     }
                     
                     updateStatus(`Reply process finished! Moving back to Telegram...`, tweet);
-                    await randomDelay(2000, 3000);
+                    await randomDelay(1000, 1500);
                     return finishProcess(true);
                 } else {
                     updateStatus(`Error: Send button not found or disabled.`, tweet);
-                    await randomDelay(3000, 3000);
+                    await randomDelay(2000, 3000);
                     return finishProcess(false);
                 }
             } else {
                 updateStatus(`Error: Could not find text box in modal!`, tweet);
-                await randomDelay(4000, 4000);
+                await randomDelay(2000, 3000);
                 return finishProcess(false);
             }
         } else {
             updateStatus(`Error: Could not find reply button on tweet!`, tweet);
-            await randomDelay(3000, 3000);
+            await randomDelay(2000, 3000);
             return finishProcess(false);
         }
         
