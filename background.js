@@ -130,8 +130,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function generateComment(text, langCode, authorHandle) {
-    const data = await chrome.storage.local.get(['apiKey']);
+    const data = await chrome.storage.local.get(['apiKey', 'aiModel']);
     const apiKey = data.apiKey;
+    const modelName = data.aiModel || "mixtral-8x7b-32768";
     
     if (!apiKey) {
         throw new Error("No API key set in extension popup.");
@@ -210,7 +211,7 @@ Post: "${text}"`;
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: "llama-3.3-70b-versatile", 
+                model: modelName, 
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.7
             })
