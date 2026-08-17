@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.aiModel) {
             aiModelInput.value = result.aiModel;
         } else {
-            aiModelInput.value = "llama-3.3-70b-versatile";
+            aiModelInput.value = "llama3-8b-8192";
         }
         
         if (result.timeLimit !== undefined) timeLimitInput.value = result.timeLimit;
