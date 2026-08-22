@@ -40,7 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.myUsername) myUsernameInput.value = result.myUsername;
         
         if (result.aiModel) {
-            aiModelInput.value = result.aiModel;
+            if (result.aiModel === "mixtral-8x7b-32768" || result.aiModel === "llama3-8b-8192" || result.aiModel === "llama-3.1-8b-instant") {
+                aiModelInput.value = "openai/gpt-oss-20b";
+                chrome.storage.local.set({ aiModel: "openai/gpt-oss-20b" });
+            } else {
+                aiModelInput.value = result.aiModel;
+            }
         } else {
             aiModelInput.value = "openai/gpt-oss-20b";
         }

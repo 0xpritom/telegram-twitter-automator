@@ -153,12 +153,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function generateComment(text, langCode, authorHandle) {
     const data = await chrome.storage.local.get(['apiKey', 'aiModel']);
-    const apiKey = data.apiKey;
-    const provider = "groq";
-    
+    let apiKeysRaw = data.apiKey || "";
     let modelName = data.aiModel || 'openai/gpt-oss-20b';
     
-    if (!apiKey) {
+    // Split by newline or comma, trim whitespace, remove empty keys
+    const apiKeys = apiKeysRaw.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
+    
+    if (apiKeys.length === 0) {
         throw new Error("No API key set in extension popup.");
     }
 
@@ -224,56 +225,58 @@ Keep it extremely natural and raw, as if a real person is casually replying from
 IMPORTANT: Output ONLY the raw comment text. DO NOT wrap your comment in quotes. DO NOT use prefixes like "Comment:" or "Reply:". Just output the raw text directly.
 
 Post: "${text}"`;
-    
     let url = "https://api.groq.com/openai/v1/chat/completions";
-    let headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-    };
     
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-                model: modelName, 
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.7
-            })
-        });
-
-        const result = await response.json();
+    let lastError = null;
+    
+    for (let i = 0; i < apiKeys.length; i++) {
+        let currentApiKey = apiKeys[i];
+        let headers = {
+            'Authorization': `Bearer ${currentApiKey}`,
+            'Content-Type': 'application/json'
+        };
         
-        if (!response.ok) {
-            // Handle cases where the API returns an array of errors
-            if (Array.isArray(result) && result[0] && result[0].error) {
-                throw new Error(result[0].error.message || "Unknown API Error");
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    model: modelName, 
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.7
+                })
+            });
+
+            const result = await response.json();
+            
+            if (!response.ok) {
+                // Handle cases where the API returns an array of errors
+                let errMsg = result.error?.message || "Unknown API Error";
+                if (Array.isArray(result) && result[0] && result[0].error) {
+                    errMsg = result[0].error.message || "Unknown API Error";
+                }
+                
+                throw new Error(`Key ${i+1}: ${errMsg}`);
             }
-            if (result.error && result.error.message) {
-                throw new Error(result.error.message);
+
+            if (!result.choices || !result.choices[0]) {
+                throw new Error("Invalid API response structure.");
             }
-            throw new Error(`API Error: ${response.status} ${response.statusText}`);
-        }
-        
-        if (result.error) {
-            throw new Error(result.error.message || JSON.stringify(result.error));
-        }
-        
-        if (!result.choices || !result.choices[0]) {
-            console.error("Unexpected API Response:", result);
-            throw new Error("Invalid API response structure. Check your API Key and Model Name.");
-        }
 
-        let comment = result.choices[0].message.content.trim();
-        
-        comment = comment.replace(/^(Comment|Reply|Response):\s*/i, '');
-        comment = comment.replace(/^["']+|["']+$/g, '');
-        comment = comment.trim();
-
-        return comment;
-
-    } catch (e) {
-        console.error("Groq API Error:", e);
-        throw e;
+            let comment = result.choices[0].message.content.trim();
+            comment = comment.replace(/^(Comment|Reply|Response):\s*/i, '');
+            comment = comment.replace(/^["']+|["']+$/g, '');
+            comment = comment.trim();
+            
+            return comment;
+            
+        } catch (error) {
+            console.warn(`[X-Automator] API Key ${i+1} failed:`, error.message);
+            lastError = error;
+            // If it's the last key, it will naturally exit the loop and throw below
+        }
     }
+    
+    // If all keys failed, throw the last error
+    throw new Error(`All ${apiKeys.length} API keys failed. Last error: ${lastError.message}`);
 }

@@ -103,6 +103,23 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
         for (let i = 0; i < 40; i++) { // Poll every 500ms for up to 20 seconds
             tweet = document.querySelector('article[data-testid="tweet"]');
             if (tweet) break;
+            
+            // Check for common error states to fail fast instead of waiting 20s
+            const bodyText = document.body.textContent || "";
+            if (
+                bodyText.includes("this page doesn't exist") || 
+                bodyText.includes("this page doesn’t exist") ||
+                bodyText.includes("This Tweet has been deleted") ||
+                bodyText.includes("This post has been deleted") ||
+                bodyText.includes("You’re blocked") ||
+                bodyText.includes("You're blocked") ||
+                bodyText.includes("Something went wrong. Try reloading")
+            ) {
+                updateStatus("Post not found, deleted, or blocked. Skipping instantly...");
+                await sleep(1000);
+                return finishProcess(false);
+            }
+            
             await sleep(500);
         }
         
@@ -166,6 +183,14 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
 
         let didComment = false;
 
+        // Check if we already liked this tweet visually (indicates previous processing)
+        const alreadyLiked = tweet.querySelector('[data-testid="unlike"]') !== null;
+        if (alreadyLiked) {
+            updateStatus("Tweet is already liked! Assuming previously processed, skipping instantly...", tweet);
+            await randomDelay(1000, 1500);
+            return finishProcess(true);
+        }
+
         // 1. Comment Action
         if (actionMode === 'comment' || actionMode === 'both') {
             if (tweetId) {
@@ -226,13 +251,30 @@ async function startBot(actionMode, timeLimit, readMin, readMax, myUsername) {
                             await randomDelay(800, 1200);
                             
                             let textBox = null;
+                            let isRestricted = false;
                             for (let i = 0; i < 20; i++) { // Poll every 500ms for up to 10 seconds
                                 textBox = document.querySelector('[data-testid="tweetTextarea_0"]');
                                 if (textBox) break;
+                                
+                                const modalText = document.body.textContent || "";
+                                if (modalText.includes("Who can reply?") || modalText.includes("Only some accounts can reply")) {
+                                    isRestricted = true;
+                                    break;
+                                }
+                                
                                 await sleep(500);
                             }
                             
-                            if (textBox) {
+                            if (isRestricted) {
+                                updateStatus(`Replies are restricted for this post. Skipping comment...`, tweet);
+                                await randomDelay(1000, 1500);
+                                
+                                const buttons = Array.from(document.querySelectorAll('[role="button"]'));
+                                const gotItBtn = buttons.find(b => (b.textContent || "").includes("Got It") || (b.textContent || "").includes("Got it"));
+                                if (gotItBtn) simulateClick(gotItBtn);
+                                
+                                await randomDelay(800, 1200);
+                            } else if (textBox) {
                                 updateStatus(`Pasting reply...`, tweet);
                                 textBox.focus();
                                 await randomDelay(200, 400);
